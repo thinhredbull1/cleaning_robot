@@ -73,6 +73,11 @@ bool PinStateChanged(int pin, int *lastButtonState, int *buttonRisingEdge) {
 
   return false;
 }
+typedef struct robot_coord{
+  double x;
+  double y;
+  double theta;
+}robot_pos;
 #define ros_serial 0
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
@@ -105,3 +110,4 @@ const int time_run_test=2000;
 // const float MM_PER_COUNT_LEFT = (1 - ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);
 // const float MM_PER_COUNT_RIGHT = (1 + ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);
 const unsigned long micros_interval=(1.0/LOOP_FREQUENCY)*1e6;
+const double PI=3.141592653589793;
