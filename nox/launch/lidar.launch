@@ -1,0 +1,15 @@
+<launch>
+				<!--  ************** Odometry ***************  -->
+
+	
+    <!-- <node pkg="tf" type="static_transform_publisher" name="base_f_to_l" 
+    args="0.0 0.0 0.0 3.14159 0.0 0.0 /base_footprint /base_link 40" /> -->
+  <node name="lidar_port"  pkg="xv_11_laser_driver"  type="neato_laser_publisher" respawn="false" output="log">
+    <param name="port"         type="string" value="/dev/ttyS0"/>  
+    <param name="baudrate"     type="int"    value="115200"/>
+    <param name="frame_id"     type="string" value="laser"/>
+     <param name="rate"     type="int" value="100"/>
+  </node>
+
+
+</launch>

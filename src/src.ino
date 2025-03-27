@@ -62,7 +62,7 @@ void IRAM_ATTR encoderRightMotor() {
   else {
     delta = newB > 0 ? -dir_encod_M0 : dir_encod_M0;
   }
-  encoder_count[RIGHT] = delta;
+  encoder_count[RIGHT] -= delta;
   old_a = newA;
 }
 // 15/15; --> speed_desired()
@@ -117,7 +117,7 @@ bool receive_uart() {
       m_per_count_l=c.substring(0,config_param).toDouble();
       m_per_count_r=c.substring(config_param+1,index_R).toDouble();
       robot_width=c.substring(index_R+1).toDouble();
-      Serial.print("CONFIG:")
+      Serial.print("CONFIG:");
       Serial.print(m_per_count_l,3);
       Serial.print(" ");
       Serial.print(m_per_count_r,3);
@@ -206,7 +206,7 @@ void control_speed() {
  
   for (int i = 0; i < 2; i++) {
 
-    // publish_encoder[i] += delta_encoder[i];  // cong don encoder de tinh vi tri
+    publish_encoder[i] += delta_encoder[i];  // cong don encoder de tinh vi tri
     speed_filter[i] = delta_encoder[i] * 0.23905722 + last_encoder[i] * 0.23905722 + speed_filter[i] * 0.52188555;
     last_encoder[i] = delta_encoder[i];
     m_pwm[i] += pid[i].compute(delta_encoder[i], speed_desired[i], delta_time);  // speed >0 ->  delta must >0 pid
@@ -307,8 +307,8 @@ void setup() {
   for (int i = 0; i < 2; i++) {
     control_motor(i, 0);
   }
-  pid[LEFT].setParams(6.5, 20.8, 0, 255);   //39.2 34.6
-  pid[RIGHT].setParams(6.5, 20.8, 0, 255);  //39.2 34.6
+  pid[LEFT].setParams(7.8, 22.8, 0, 255);   //39.2 34.6
+  pid[RIGHT].setParams(7.8, 22.8, 0, 255);  //39.2 34.6
   attachInterrupt(digitalPinToInterrupt(enca[LEFT]), encoderLeftMotor, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[RIGHT]), encoderRightMotor, CHANGE);
   publish_time = micros();
@@ -324,8 +324,8 @@ void loop() {
   if (ros_serial) receive_uart();
   // Serial.println("123");
   // delay(500);
-  // bool encb_l_now = digitalRead(encb[LEFT]);
-  // bool encb_r_now = digitalRead(encb[RIGHT]);
+  bool encb_l_now = digitalRead(encb[LEFT]);
+  bool encb_r_now = digitalRead(encb[RIGHT]);
   // if (PinStateChanged(encb_l_now, &last_a_left, &last_b_left)) {
   //   bool enca_now=digitalRead(enca[LEFT]);
   //   if (last_b_left == 0) { // rising
@@ -351,5 +351,5 @@ void loop() {
   //   time_loop_pid = millis();
   // }
   callFunctionPeriodically(control_speed, LOOP_MS, time_loop_pid);  // tinh pid van toc va encoder
-  // callFunctionPeriodically(send_odom,LOOP_PUB,time_publish); // gui len pi neu dung ros serial
+  callFunctionPeriodically(send_odom,LOOP_PUB,time_publish); // gui len pi neu dung ros serial
 }

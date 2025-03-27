@@ -1,0 +1,182 @@
+TrajectoryPlannerROS:
+  # for details see: http://www.ros.org/wiki/base_local_planner
+  odom_topic: odom
+  
+  max_vel_x: 0.14
+  min_vel_x: -0.14
+  max_vel_theta:  0.8
+  min_vel_theta:  0.2
+  min_in_place_rotational_vel: 0.6
+  acc_lim_th: 1.2
+  acc_lim_x: 1.0
+  acc_lim_y: 0.0
+  holonomic_robot: false
+  
+  # goal tolerance parameters
+  yaw_goal_tolerance: 0.1       # 0.1 means 5.7 degrees
+  xy_goal_tolerance: 0.05
+  latch_xy_goal_tolerance: false
+  
+  # Forward Simulation Parameters
+  sim_time: 1.5                       # The amount of time to forward-simulate trajectories in seconds
+  sim_granularity: 0.03               # The step size, in meters, to take between points on a given trajectory
+  angular_sim_granularity: 0.015       # The step size, in radians, to take between angular samples on a given trajectory.
+  vx_samples: 20                       # The number of samples to use when exploring the x velocity space
+  vtheta_samples: 30                   # The number of samples to use when exploring the theta velocity space
+  controller_frequency: 10             # The frequency at which this controller will be called in Hz
+
+  # Trajectory Scoring Parameters
+  meter_scoring: true              # If true, distances are expressed in meters; otherwise grid cells
+  path_distance_bias: 1.0          # The weighting for how much the controller should stay close to the path it was given
+  goal_distance_bias: 0.8          # The weighting for how much the controller should attempt to reach its local goal, also controls speed
+  occdist_scale: 0.01              # The weighting for how much the controller should attempt to avoid obstacles
+                                   # occdist_scale * (maximum obstacle cost along the trajectory in obstacle cost (0-254))
+  heading_lookahead: 0.325         # How far to look ahead in meters when scoring different in-place-rotation trajectories
+  oscillation_reset_dist: 0.05     # How far the robot must travel in meters before oscillation flags are reset
+  publish_cost_grid: true
+  dwa: true                       # Whether to use the Dynamic Window Approach (DWA)_ or whether to use Trajectory Rollout
+TebLocalPlannerROS:
+
+  odom_topic: /odom
+  #odom_topic: /rtabmap/odom
+  map_frame: map
+  # robot_type: "omnidirectional" 
+  # Trajectory
+  teb_autosize: True
+  dt_ref: 0.2 #0.2
+  dt_hysteresis: 0.1
+  global_plan_overwrite_orientation: True
+  max_global_plan_lookahead_dist: 3.5
+  feasibility_check_no_poses: 3
+  min_samples: 3
+  # Robot
+  max_vel_y: 0.0
+  max_vel_y_backwards: 0.0
+  acc_lim_y: 0.0
+  max_vel_x: 0.15 #0.25 
+  max_vel_x_backwards: 0.12 #0.2
+  max_vel_theta: 0.45 #0.5
+  acc_lim_x: 0.4 # 0.2
+  acc_lim_theta: 0.8 #0.5, 0.26
+  min_turning_radius: 0.0
+  footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
+    type: "polygon" #"circular" 
+    radius: 0.38 # for type "circular"
+    #line_start: [-0.3, 0.0] # for type "line"
+    #line_end: [0.3, 0.0] # for type "line"
+    #front_offset: 0.2 # for type "two_circles"
+    #front_radius: 0.2 # for type "two_circles"
+    #rear_offset: 0.2 # for type "two_circles"
+    #rear_radius: 0.2 # for type "two_circles"
+    vertices: [[-0.2, -0.2], [-0.2, 0.2], [0.2, 0.2], [0.2, -0.2]]  # for type "polygon"
+
+  # GoalTolerance
+      
+  xy_goal_tolerance: 0.15 #0.2
+  yaw_goal_tolerance: 0.1571
+  free_goal_vel: false
+  allow_init_with_backwards_motion: True
+  # Obstacles
+      
+  min_obstacle_dist: 0.15
+  inflation_dist: 0.15
+  dynamic_obstacle_inflation_dist: 0.15
+  include_costmap_obstacles: True
+  costmap_obstacles_behind_robot_dist: 1.0
+  obstacle_poses_affected: 20 #30
+  costmap_converter_plugin: ""
+  costmap_converter_spin_thread: True
+  costmap_converter_rate: 2.5
+
+  # Optimization
+      
+  no_inner_iterations: 4 #5
+  no_outer_iterations: 3 #4
+  optimization_activate: True
+  optimization_verbose: False
+  penalty_epsilon: 0.05
+  weight_max_vel_x: 1 #2
+  weight_max_vel_theta: 1 #1
+  weight_max_vel_y: 1.5 #2
+  weight_acc_lim_y: 1.5 #1
+  weight_acc_lim_x: 1 # 1
+  weight_acc_lim_theta: 1 # 1
+  weight_kinematics_nh: 1000 #1000
+  weight_kinematics_forward_drive: 0 #1000
+  weight_kinematics_turning_radius: 0 #1 #only for car-like robots
+  weight_optimaltime: 1.0 #1
+  weight_obstacle: 50 #50
+  weight_viapoint: 0.0 #5.0 #1.0
+  weight_inflation: 0.1 #0.1
+  weight_dynamic_obstacle: 5 # not in use yet
+  selection_alternative_time_cost: False # not in use yet
+
+  # Homotopy Class Planner
+
+  enable_homotopy_class_planning: False #True
+  enable_multithreading: True
+  simple_exploration: False
+  max_number_classes: 2 #4
+  roadmap_graph_no_samples: 3
+  roadmap_graph_area_width: 1
+  h_signature_prescaler: 0.5
+  h_signature_threshold: 0.1
+  obstacle_keypoint_offset: 0.1
+  obstacle_heading_threshold: 0.45
+  visualize_hc_graph: False
+
+  #ViaPoints
+  global_plan_viapoint_sep: -0.1 #negative if none
+  via_points_ordered: False #adhere to order of via points
+
+  #Feedback
+  publish_feedback: false #false
+DWAPlannerROS:
+  # for details see: https://wiki.ros.org/dwa_local_planner
+  odom_topic: odom
+
+# Robot Configuration Parameters
+  max_vel_x: 0.14
+  min_vel_x: -0.14
+
+  max_vel_y: 0.0           # 0 for non-holonomic robot
+  min_vel_y: 0.0            # 0 for non-holonomic robot
+
+# The velocity when robot is moving in a straight line
+  max_vel_trans:  0.14
+  min_vel_trans:  0.1
+
+  max_vel_theta: 0.7 # rad/s w
+  min_vel_theta: 0.15
+
+  acc_lim_x: 0.8  # v= v0+a*t
+  acc_lim_y: 0.0
+  acc_lim_theta: 1.8 
+
+# Goal Tolerance Parametes
+  xy_goal_tolerance: 0.15 # sai so cho phep dich va hien tai <0.15m /s
+  yaw_goal_tolerance: 0.2 # radian goc robot
+  latch_xy_goal_tolerance: false
+  # 1.2 /0.2 --> v0 v1 v2 v3 v4 v5
+# Forward Simulation Parameters
+  sim_time: 1.2                  # The amount of time to forward-simulate trajectories in seconds
+  sim_granularity: 0.02          # The step size, in meters, to take between points on a given trajectory
+  vx_samples: 10                   # The number of samples to use when exploring the x velocity space
+  vy_samples: 0                    # The number of samples to use when exploring the y velocity space
+  vtheta_samples: 20           # The number of samples to use when exploring the theta velocity space
+  controller_frequency: 10.0       # The frequency at which this controller will be called in Hz s 1/hz == 0.2s
+
+# Trajectory Scoring Parameters
+  path_distance_bias: 20.5         # The weighting for how much the controller should stay close to the path it was given 
+  goal_distance_bias: 15.8         # The weighting for how much the controller should attempt to reach its local goal, also controls speed
+  occdist_scale: 0.03         # The weighting for how much the controller should attempt to avoid obstacles
+  forward_point_distance: 0.325    # The distance from the center point of the robot to place an additional scoring point, in meters
+  stop_time_buffer: 0.2            # The amount of time that the robot must stop before a collision in order for a trajectory to be considered valid in seconds
+  scaling_speed: 0.25              # The absolute value of the velocity at which to start scaling the robot's footprint, in m/s
+  max_scaling_factor: 0.2          # The maximum factor to scale the robot's footprint by
+
+# Oscillation Prevention Parameters
+  oscillation_reset_dist: 0.05    # How far the robot must travel in meters before oscillation flags are reset
+
+# Debugging
+  publish_traj_pc : true

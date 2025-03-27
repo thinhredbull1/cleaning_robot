@@ -78,7 +78,7 @@ typedef struct robot_coord{
   double y;
   double theta;
 }robot_pos;
-#define ros_serial 0
+#define ros_serial 1
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
 
@@ -94,8 +94,8 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {25,32};
-const int encb[]= {33,35}; 
+const int enca[] = {25,22};
+const int encb[]= {33,32}; 
 const int pwm[] = { 26, 2 };  //{10,11}
 const int dir[] = { 14, 16 };
 const int dir2[] = { 27, 4 };
@@ -110,4 +110,4 @@ const int time_run_test=2000;
 // const float MM_PER_COUNT_LEFT = (1 - ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);
 // const float MM_PER_COUNT_RIGHT = (1 + ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);
 const unsigned long micros_interval=(1.0/LOOP_FREQUENCY)*1e6;
-const double PI=3.141592653589793;
+// const double PI=3.141592653589793;

@@ -1,0 +1,22 @@
+<launch>
+	<arg name="set_base_frame" default="base_link"/>
+  <arg name="set_odom_frame" default="odom"/>
+  <arg name="set_map_frame"  default="map"/>
+    <arg name="node_start_delay" default="1.0" />  
+<node pkg="tf" type="static_transform_publisher" name="base_to_gps" args="0.02 0.0 0.25 0.0 0.0 0.0 /base_link /gps_frame 30" />
+      <rosparam command="load" file="$(find nox)/cfg/ekf_params.yaml" />
+  <rosparam command="load" file="$(find nox)/cfg/navsat_param.yaml" /> 
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se_map" clear_params="true">
+    <remap from="odometry/filtered" to="odometry/filtered_map"/>
+  </node>
+
+  <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="odometry/filtered_map"/>
+      <!-- <remap from="gps/fix" to="/navsat/fix"/> -->
+      <remap from="imu/data" to="/imu/data"/>
+  </node>
+
+				
+
+	<!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nox)/cfg/rnoviz_slam_base_local_planner.rviz" required="true" /> -->
+</launch>

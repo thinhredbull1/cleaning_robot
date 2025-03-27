@@ -1,0 +1,22 @@
+<launch>	
+	        <!--  ************** Navigation ***************  -->
+<arg name="move_forward_only" default="false"/>
+<arg name="node_start_delay" default="1.0" />  
+  <arg name="map_file" default="/home/gps_robot/robot_ws/src/nox/map/map_new.yaml"/>
+<!-- <include file="$(find nox)/launch/nox_bringup_tf.launch" /> -->
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file) "/>
+  <include file="$(find gmcl)/examples/gmcl_diff.launch" />
+	<node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'">
+  	  	<rosparam file="$(find nox)/cfg/costmap_common_params.yaml" command="load" ns="global_costmap" />
+  	 	<rosparam file="$(find nox)/cfg/costmap_common_params.yaml" command="load" ns="local_costmap" />
+  		<rosparam file="$(find nox)/cfg/local_costmap_params.yaml" command="load" />
+  		<rosparam file="$(find nox)/cfg/global_costmap_params.yaml" command="load" />
+  		<rosparam file="$(find nox)/cfg/base_local_planner_params.yaml" command="load" />
+		<rosparam file="$(find nox)/cfg/move_base_params.yaml" command="load" />
+		<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+		<!-- <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" /> -->
+	</node>
+	<!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nox)/cfg/rviz_dwa.rviz" required="true" /> -->
+
+</launch>

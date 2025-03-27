@@ -1,0 +1,8 @@
+<launch>
+	
+	<node name="camera_node" pkg="my_image_transport" type="my_image_transport_node" output="screen">
+		<param name="camera_id" value="/dev/video0"/>
+	</node>
+
+
+</launch>
