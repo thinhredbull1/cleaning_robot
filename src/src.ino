@@ -282,7 +282,10 @@ void send_odom() {
   Serial.print("x");
   Serial.print(robotGlobalPos.y);
   Serial.print("y");
-  Serial.println(robotGlobalPos.theta);
+  Serial.print(robotGlobalPos.theta);
+  Serial.print("v");
+  Serial.println(dxy);
+
   // Serial.print("*");
   // Serial.println(publish_time);
   publish_encoder[0] = 0;

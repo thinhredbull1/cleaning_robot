@@ -10,7 +10,25 @@
     <param name="frame_id"     type="string" value="laser"/>
      <param name="rate"     type="int" value="100"/>
   </node>
-	<node name="pubVel" pkg="nox" type="pubVel.py" output="screen"/>
+ <node name="nox_controller" pkg="nox" type="nox_controller">
+
+      <param name="publish_tf" value="true" />
+      <param name="robot_width" value="0.314" />
+      <param name="publish_rate" value="20.0" />
+      <param name="GEAR_RATIO" value="2.065" />
+      <param name="print_data" value="false" />
+      <param name="print_yaw" value="false" />
+      <param name="use_mpu" value="false" />
+      <param name="bias" value="0.0" />
+      <param name="arduino" value="/dev/ttyACM0" />
+      <param name="baud" value="57600" />
+      <param name="usePulseCount" value="0" />
+      <param name="WHEEL_DIAMETER" value="0.043" />
+      <param name="ENCODER_PULSES" value="725" />
+
+
+	</node>	 
+	<!-- <node name="pubVel" pkg="nox" type="pubVel.py" output="screen"/> -->
 <!-- <node pkg="laser_scan_matcher" type="laser_scan_matcher_node" name="laser_scan_matcher_node" output="screen" >
     <param name="fixed_frame" value = "odom"/>
      <param name="base_frame" value = "base_link"/>

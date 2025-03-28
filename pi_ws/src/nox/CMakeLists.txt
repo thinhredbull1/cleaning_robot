@@ -119,7 +119,7 @@ catkin_package(
 include_directories(
  # include
   ${catkin_INCLUDE_DIRS}
-  ${jsoncpp_INCLUDE_DIRS}
+  # ${jsoncpp_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/../serial/include
 )
 
@@ -204,4 +204,8 @@ include_directories(
 catkin_install_python(PROGRAMS scripts/mpu6050.py scripts/test_odom.py scripts/pubVel.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
+add_executable(nox_controller src/nox_controller.cpp)
+target_link_libraries(nox_controller 
+  ${catkin_LIBRARIES} 
+  serial
+)
