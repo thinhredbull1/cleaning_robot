@@ -8,6 +8,7 @@
 // #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 // #include <jsoncpp/json/json.h>
 #include <std_msgs/String.h>
@@ -65,6 +66,7 @@ ros::Time previous_time;
 ros::NodeHandle n;
 ros::NodeHandle nh_private_("~");
 ros::Subscriber sub_cmd;
+ros::Subscriber sub_io;
 ros::Publisher odom_pub;
 
 tf::TransformBroadcaster broadcaster;
@@ -158,6 +160,49 @@ std::string arduino_path = "/dev/ttyACM0";
 //   speed_time = speed.header.stamp;
 //   check_data=1;
 // }
+void sendSerial(int command)
+{
+	if (command == 0)
+	{
+		ser_.write("RESET");
+	}
+	else
+	{
+		throw std::invalid_argument("Lệnh không hợp lệ cho sendSerial(int)");
+	}
+}
+
+// sendSerial(1, 12, 12) -> "12/12;"
+void sendSerial(int command, int left, int right)
+{
+	if (command == 1)
+	{
+		std::ostringstream oss;
+		oss << left << "/" << right << ";";
+		ser_.write(oss.str());
+	}
+}
+
+// sendSerial(2, 0.3, 0.5) -> "0.3L0.5R;"
+void sendSerial(int command, double left, double right, double width)
+{
+	if (command == 2)
+	{
+		std::ostringstream oss;
+		oss << left << "L" << right << "R" << width << "W;";
+		ROS_INFO("Send odom config:%s", oss.str());
+		ser_.write(oss.str());
+	}
+}
+void sendSerial(int command, int IO_func, bool IO_STATE)
+{
+	if (command == 3)
+	{
+		std::ostringstream oss;
+		oss << IO_func << "I" << IO_STATE << ";";
+		ser_.write(oss.str());
+	}
+}
 void PublishOdom()
 {
 	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
@@ -301,6 +346,14 @@ void handle_cmd_vel(const geometry_msgs::Twist &msg)
 	new_speed = 1;
 	// ROS_INFO("angular: %f", speed_angular);
 }
+void handle_io(const std_msgs::Int32 &msg)
+{
+	static bool stateIO[4]={false,false,false,false};
+	int index=msg.data;
+	stateIO[index]=!stateIO[index];
+	sendSerial(IO_CMD,index,stateIO[index]);
+	// ROS_INFO("angular: %f", speed_angular);
+}
 bool SerializePulse(std::string data)
 {
 	if (usePulseCount)
@@ -354,49 +407,7 @@ bool SerializePulse(std::string data)
 	}
 	return 0;
 }
-void sendSerial(int command)
-{
-	if (command == 0)
-	{
-		ser_.write("RESET");
-	}
-	else
-	{
-		throw std::invalid_argument("Lệnh không hợp lệ cho sendSerial(int)");
-	}
-}
 
-// sendSerial(1, 12, 12) -> "12/12;"
-void sendSerial(int command, int left, int right)
-{
-	if (command == 1)
-	{
-		std::ostringstream oss;
-		oss << left << "/" << right << ";";
-		ser_.write(oss.str());
-	}
-}
-
-// sendSerial(2, 0.3, 0.5) -> "0.3L0.5R;"
-void sendSerial(int command, double left, double right, double width)
-{
-	if (command == 2)
-	{
-		std::ostringstream oss;
-		oss << left << "L" << right << "R" << width << "W;";
-		ROS_INFO("Send odom config:%s", oss.str());
-		ser_.write(oss.str());
-	}
-}
-void sendSerial(int command, int IO_func, bool IO_STATE)
-{
-	if (command == 3)
-	{
-		std::ostringstream oss;
-		oss << IO_func << "I" << IO_STATE << ";";
-		ser_.write(oss.str());
-	}
-}
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "nox_controller");
@@ -421,8 +432,9 @@ int main(int argc, char **argv)
 	ROS_INFO("bias:%f", bias);
 	ROS_INFO("rate:%f", rate);
 	ROS_INFO("gear:%f", GEAR_RATIO);
-	sub_cmd = n.subscribe("cmd_vel", 40, handle_cmd_vel);
-	odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
+	sub_cmd = n.subscribe("cmd_vel", 10, handle_cmd_vel);
+	sub_io=n.subscribe("case",1,handle_io);
+	odom_pub = n.advertise<nav_msgs::Odometry>("odom", 10);
 	// loadPosesFromFile(file_path);
 	try
 	{

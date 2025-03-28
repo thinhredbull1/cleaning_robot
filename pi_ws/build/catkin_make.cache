@@ -1,0 +1,2 @@
+rviz_control_panel
+-DCATKIN_DEVEL_PREFIX=/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel -DCMAKE_INSTALL_PREFIX=/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/install -DCATKIN_WHITELIST_PACKAGES=rviz_control_panel -G Unix Makefiles
