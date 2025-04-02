@@ -1,0 +1,8 @@
+prefix=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel
+
+Name: xv_11_laser_driver
+Description: Description of xv_11_laser_driver
+Version: 0.3.0
+Cflags: -I/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/xv_11_laser_driver/include
+Libs: -L${prefix}/lib 
+Requires: 

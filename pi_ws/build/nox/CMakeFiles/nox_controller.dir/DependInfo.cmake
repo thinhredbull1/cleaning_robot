@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/src/nox_controller.cpp" "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/CMakeFiles/nox_controller.dir/src/nox_controller.cpp.o"
+  "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/src/nox_controller.cpp" "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/CMakeFiles/nox_controller.dir/src/nox_controller.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -20,7 +20,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "/opt/ros/noetic/include"
   "/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp"
   "/usr/include/eigen3"
-  "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/../serial/include"
+  "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/../serial/include"
   )
 
 # Targets to which this target links.

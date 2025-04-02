@@ -2,7 +2,7 @@
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 

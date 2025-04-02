@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/src/nox_controller.cpp
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/src/nox_controller.cpp
 ros/ros.h
 -
 tf/transform_broadcaster.h
@@ -34,6 +34,32 @@ std_msgs/String.h
 std_msgs/Float64.h
 -
 sstream
+-
+
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/serial/include/serial/serial.h
+limits
+-
+vector
+-
+string
+-
+cstring
+-
+sstream
+-
+exception
+-
+stdexcept
+-
+serial/v8stdint.h
+-
+
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/serial/include/serial/v8stdint.h
+stddef.h
+-
+stdio.h
+-
+stdint.h
 -
 
 /opt/ros/noetic/include/geometry_msgs/Point.h
@@ -989,32 +1015,6 @@ ros/forwards.h
 /opt/ros/noetic/include/ros/ros/forwards.h
 
 /opt/ros/noetic/include/rosconsole/macros_generated.h
-
-/opt/ros/noetic/include/serial/serial.h
-limits
--
-vector
--
-string
--
-cstring
--
-sstream
--
-exception
--
-stdexcept
--
-serial/v8stdint.h
--
-
-/opt/ros/noetic/include/serial/v8stdint.h
-stddef.h
--
-stdio.h
--
-stdint.h
--
 
 /opt/ros/noetic/include/std_msgs/Float64.h
 string

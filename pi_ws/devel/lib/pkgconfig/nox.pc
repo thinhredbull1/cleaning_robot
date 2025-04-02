@@ -1,8 +1,8 @@
-prefix=/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel
+prefix=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel
 
 Name: nox
 Description: Description of nox
 Version: 1.0.0
-Cflags: -I/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/include
+Cflags: -I/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/include
 Libs: -L${prefix}/lib -lnox
 Requires: roscpp tf_conversions geometry_msgs

@@ -7,8 +7,4 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel:$CMAKE_PREFIX_PATH"
-export LD_LIBRARY_PATH="/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel/lib:$LD_LIBRARY_PATH"
-export PKG_CONFIG_PATH="/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
-export PWD='/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build'
-export ROS_PACKAGE_PATH="/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src:$ROS_PACKAGE_PATH"
+export PWD='/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build'

@@ -67,14 +67,14 @@ set(nox_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("TRUE" STREQUAL "TRUE")
-  set(nox_SOURCE_PREFIX /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox)
-  set(nox_DEVEL_PREFIX /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel)
+  set(nox_SOURCE_PREFIX /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox)
+  set(nox_DEVEL_PREFIX /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel)
   set(nox_INSTALL_PREFIX "")
   set(nox_PREFIX ${nox_DEVEL_PREFIX})
 else()
   set(nox_SOURCE_PREFIX "")
   set(nox_DEVEL_PREFIX "")
-  set(nox_INSTALL_PREFIX /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/install)
+  set(nox_INSTALL_PREFIX /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/install)
   set(nox_PREFIX ${nox_INSTALL_PREFIX})
 endif()
 
@@ -91,9 +91,9 @@ endif()
 # flag project as catkin-based to distinguish if a find_package()-ed project is a catkin project
 set(nox_FOUND_CATKIN_PROJECT TRUE)
 
-if(NOT "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/include " STREQUAL " ")
+if(NOT "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/include " STREQUAL " ")
   set(nox_INCLUDE_DIRS "")
-  set(_include_dirs "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/include")
+  set(_include_dirs "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/include")
   if(NOT " " STREQUAL " ")
     set(_report "Check the issue tracker '' and consider creating a ticket if the problem has not been reported yet.")
   elseif(NOT "http://wiki.ros.org/Robots/Nox " STREQUAL " ")
@@ -110,7 +110,7 @@ if(NOT "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src
         message(FATAL_ERROR "Project 'nox' specifies '${idir}' as an include dir, which is not found.  It does not exist in '${include}'.  ${_report}")
       endif()
     else()
-      message(FATAL_ERROR "Project 'nox' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/${idir}'.  ${_report}")
+      message(FATAL_ERROR "Project 'nox' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/${idir}'.  ${_report}")
     endif()
     _list_append_unique(nox_INCLUDE_DIRS ${include})
   endforeach()
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel/lib;/opt/ros/noetic/lib)
+    foreach(path /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel/lib;/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

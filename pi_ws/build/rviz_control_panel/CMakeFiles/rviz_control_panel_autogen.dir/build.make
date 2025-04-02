@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src
+CMAKE_SOURCE_DIR = /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build
+CMAKE_BINARY_DIR = /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build
 
 # Utility rule file for rviz_control_panel_autogen.
 
@@ -54,8 +54,8 @@ CMAKE_BINARY_DIR = /home/thinh/project_test/cleaning_encoder_robot/cleaning_robo
 include rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/progress.make
 
 rviz_control_panel/CMakeFiles/rviz_control_panel_autogen:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC for target rviz_control_panel"
-	cd /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel && /usr/bin/cmake -E cmake_autogen /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/AutogenInfo.json ""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC for target rviz_control_panel"
+	cd /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel && /usr/bin/cmake -E cmake_autogen /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/AutogenInfo.json ""
 
 rviz_control_panel_autogen: rviz_control_panel/CMakeFiles/rviz_control_panel_autogen
 rviz_control_panel_autogen: rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/build.make
@@ -68,10 +68,10 @@ rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/build: rviz_control
 .PHONY : rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/build
 
 rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/clean:
-	cd /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel && $(CMAKE_COMMAND) -P CMakeFiles/rviz_control_panel_autogen.dir/cmake_clean.cmake
+	cd /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel && $(CMAKE_COMMAND) -P CMakeFiles/rviz_control_panel_autogen.dir/cmake_clean.cmake
 .PHONY : rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/clean
 
 rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/depend:
-	cd /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/depend
 

@@ -1,4 +1,4 @@
-prefix=/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/install
+prefix=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/install
 
 Name: nox
 Description: Description of nox

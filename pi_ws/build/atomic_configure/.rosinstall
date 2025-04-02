@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/devel/setup.sh
+    local-name: /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel/setup.sh

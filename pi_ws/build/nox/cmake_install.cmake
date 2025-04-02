@@ -1,8 +1,8 @@
-# Install script for directory: /home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox
+# Install script for directory: /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,29 +38,29 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/nox.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/nox.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/nox/cmake" TYPE FILE FILES
-    "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/noxConfig.cmake"
-    "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/noxConfig-version.cmake"
+    "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/noxConfig.cmake"
+    "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/noxConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/nox" TYPE FILE FILES "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/nox/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/nox" TYPE FILE FILES "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/nox/package.xml")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/mpu6050.py")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/mpu6050.py")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/test_odom.py")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/test_odom.py")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/nox/catkin_generated/installspace/pubVel.py")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/nox" TYPE PROGRAM FILES "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/catkin_generated/installspace/pubVel.py")
 endif()
 

@@ -28,6 +28,7 @@ enum MotorControl
 	ESC = 3,
 	OFF_ALL = 4
 };
+ros::Duration timeReadBonus;
 int baud = 57600;
 double radius = 0.081; // width , in m
 bool usePulseCount = 0;
@@ -63,13 +64,9 @@ ros::Time speed_time(0.0);
 ros::Time previous_time;
 // Json::Value poses;
 /// @brief /
-ros::NodeHandle n;
-ros::NodeHandle nh_private_("~");
-ros::Subscriber sub_cmd;
-ros::Subscriber sub_io;
-ros::Publisher odom_pub;
 
-tf::TransformBroadcaster broadcaster;
+nav_msgs::Odometry odom_msg;
+geometry_msgs::TransformStamped t;
 serial::Serial ser_;
 double robot_width = 0.3126;
 double rate = 20.0;
@@ -104,62 +101,7 @@ std::string base_link_temp;
 ros::Duration d(1.0);
 std::string file_path = "/home/amr_robot/amr_robot/src/init_pose/depends/init_pose.json";
 std::string arduino_path = "/dev/ttyACM0";
-/// @param file_path
-// void loadPosesFromFile(const std::string &file_path)
-// {
-// 	std::ifstream file(file_path, std::ifstream::binary);
-// 	if (!file.is_open())
-// 	{
-// 		ROS_ERROR("Cannot open file: %s", file_path.c_str());
-// 		return;
-// 	}
-// 	file >> poses;
-// }
 
-// void idInitPoseCallback(const std_msgs::String::ConstPtr &msg,
-// 						ros::Publisher &initpose_pub)
-// {
-// 	std::string id = msg->data;
-// 	if (poses["poses"].isMember(id))
-// 	{
-// 		geometry_msgs::PoseWithCovarianceStamped initpose;
-// 		initpose.header.stamp = ros::Time::now();
-// 		initpose.header.frame_id = "map";
-// 		initpose.pose.pose.position.x = poses["poses"][id]["x"].asDouble();
-// 		initpose.pose.pose.position.y = poses["poses"][id]["y"].asDouble();
-// 		initpose.pose.pose.position.z = poses["poses"][id]["z"].asDouble();
-// 		initpose.pose.pose.orientation.x = poses["poses"][id]["qx"].asDouble();
-// 		initpose.pose.pose.orientation.y = poses["poses"][id]["qy"].asDouble();
-// 		initpose.pose.pose.orientation.z = poses["poses"][id]["qz"].asDouble();
-// 		initpose.pose.pose.orientation.w = poses["poses"][id]["qw"].asDouble();
-
-// 		// Set covariance to zero for simplicity
-// 		for (int i = 0; i < 36; ++i)
-// 		{
-// 			initpose.pose.covariance[i] = 0.0;
-// 		}
-
-// 		initpose.pose.covariance[0] = 0.3;	// x
-// 		initpose.pose.covariance[7] = 0.3;	// y
-// 		initpose.pose.covariance[35] = 0.2; // orient
-
-// 		initpose_pub.publish(initpose);
-// 		ROS_INFO("Published initpose for ID: %s", id.c_str());
-// 	}
-// 	else
-// 	{
-// 		ROS_WARN("No pose found for ID: %s", id.c_str());
-// 	}
-// }
-// void handle_speed( const geometry_msgs::Vector3Stamped& speed) {
-//   speed_act_left = speed.vector.x;
-//   ROS_INFO("speed left : %d", speed_act_left);
-//   speed_act_right =speed.vector.y;
-//   ROS_INFO("speed right : %d", speed_act_right);
-//   speed_dt = speed.vector.z;
-//   speed_time = speed.header.stamp;
-//   check_data=1;
-// }
 void sendSerial(int command)
 {
 	if (command == 0)
@@ -210,7 +152,7 @@ void PublishOdom()
 
 	if (publish_tf)
 	{
-		geometry_msgs::TransformStamped t;
+		
 		// geometry_msgs::TransformStamped k;
 
 		t.header.frame_id = odom;
@@ -219,12 +161,11 @@ void PublishOdom()
 		t.transform.translation.y = y_pos;
 		t.transform.translation.z = 0.0;
 		t.transform.rotation = odom_quat;
-		t.header.stamp = current_time;
-		broadcaster.sendTransform(t);
+		t.header.stamp = current_time-timeReadBonus;
+		
 	}
 
-	nav_msgs::Odometry odom_msg;
-	odom_msg.header.stamp = current_time;
+	odom_msg.header.stamp = current_time-timeReadBonus;
 	odom_msg.header.frame_id = odom;
 	odom_msg.pose.pose.position.x = x_pos;
 	odom_msg.pose.pose.position.y = y_pos;
@@ -266,13 +207,12 @@ void PublishOdom()
 	}
 	dth = theta - last_theta;
 	last_theta = theta;
-	vx = (dt == 0) ? 0 : dxy / dt;
-	vth = (dt == 0) ? 0 : dth / dt;
+	vx = (dt == 0) ? 0 : dxy / (dt-timeReadBonus.toSec());
+	vth = (dt == 0) ? 0 : dth / (dt-timeReadBonus.toSec());
 	odom_msg.child_frame_id = base_link;
 	odom_msg.twist.twist.linear.x = vx;
 	odom_msg.twist.twist.linear.y = 0.0;
 	odom_msg.twist.twist.angular.z = vth;
-	odom_pub.publish(odom_msg);
 }
 void CalculateOdom()
 {
@@ -348,10 +288,10 @@ void handle_cmd_vel(const geometry_msgs::Twist &msg)
 }
 void handle_io(const std_msgs::Int32 &msg)
 {
-	static bool stateIO[4]={false,false,false,false};
-	int index=msg.data;
-	stateIO[index]=!stateIO[index];
-	sendSerial(IO_CMD,index,stateIO[index]);
+	static bool stateIO[4] = {false, false, false, false};
+	int index = msg.data;
+	stateIO[index] = !stateIO[index];
+	sendSerial(IO_CMD, index, stateIO[index]);
 	// ROS_INFO("angular: %f", speed_angular);
 }
 bool SerializePulse(std::string data)
@@ -377,22 +317,25 @@ bool SerializePulse(std::string data)
 	}
 	else
 	{
+		// ROS_INFO("%s",data.c_str());
 		size_t pos_x = data.find('x');
 		size_t pos_y = data.find('y', pos_x + 1);
 		size_t v_pos = data.find('v', pos_y + 1);
 		if (pos_x != std::string::npos && pos_y != std::string::npos)
 		{
-			std::string number_1_str = data.substr(0, x_pos);					  // 'x'
-			std::string number_2_str = data.substr(x_pos + 1, y_pos - x_pos - 1); // 'x' đến 'y'
-			std::string number_3_str = data.substr(y_pos + 1, v_pos - y_pos - 1); // 'y' đến cuối
+			
+			std::string number_1_str = data.substr(0, pos_x);					  // 'x'
+			std::string number_2_str = data.substr(pos_x + 1, pos_y - pos_x - 1); // 'x' đến 'y'
+			std::string number_3_str = data.substr(pos_y + 1, v_pos - pos_y - 1); // 'y' đến cuối
 			std::string number_4_str = data.substr(v_pos + 1);
+			// ROS_INFO("x:%s y:%s theta:%s v:%s", number_1_str.c_str(), number_2_str.c_str(), number_3_str.c_str(), number_4_str.c_str());
 			try
 			{
-				x_pos = std::stod(number_1_str);
-				y_pos = std::stod(number_2_str);
-				theta = std::stod(number_3_str);
+				x_pos = std::stod(number_1_str)/100.0;
+				y_pos = std::stod(number_2_str)/100.0;
+				theta = std::stod(number_3_str)*PI/180.0;
 				dxy = std::stod(number_4_str);
-				ROS_INFO("x:%f y:%f theta:%f v:%f", x_pos, y_pos, theta, dxy);
+				// ROS_INFO("x:%f y:%f theta:%f v:%f", x_pos, y_pos, theta, dxy);
 				return 1;
 			}
 			catch (const std::invalid_argument &e)
@@ -411,7 +354,13 @@ bool SerializePulse(std::string data)
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "nox_controller");
+	ros::NodeHandle n;
+	ros::NodeHandle nh_private_("~");
+	ros::Subscriber sub_cmd;
+	ros::Subscriber sub_io;
+	ros::Publisher odom_pub;
 
+	tf::TransformBroadcaster broadcaster;
 	nh_private_.getParam("initpose_file_path", file_path);
 	nh_private_.getParam("publish_rate", rate);
 	nh_private_.getParam("print_data", print_data);
@@ -433,13 +382,14 @@ int main(int argc, char **argv)
 	ROS_INFO("rate:%f", rate);
 	ROS_INFO("gear:%f", GEAR_RATIO);
 	sub_cmd = n.subscribe("cmd_vel", 10, handle_cmd_vel);
-	sub_io=n.subscribe("case",1,handle_io);
+	sub_io = n.subscribe("case", 1, handle_io);
 	odom_pub = n.advertise<nav_msgs::Odometry>("odom", 10);
 	// loadPosesFromFile(file_path);
 	try
 	{
 		ser_.setPort(arduino_path);
 		ser_.setBaudrate(baud);
+		ROS_INFO("BAUD:%d",baud);
 		serial::Timeout to = serial::Timeout::simpleTimeout(100);
 		ser_.setTimeout(to);
 		ser_.open();
@@ -480,8 +430,9 @@ int main(int argc, char **argv)
 			ros::Time check_time = ros::Time::now();
 
 			std::string result = ser_.readline();
-			ros::Duration time_read = ros::Time::now() - check_time;
-			ROS_INFO("time_read:%f", time_read.toSec());
+			// ROS_INFO("%s",result.c_str());
+			timeReadBonus= ros::Time::now() - check_time;
+			// ROS_INFO("time_read:%f", time_read.toSec());
 			if (SerializePulse(result))
 			{
 
@@ -505,6 +456,8 @@ int main(int argc, char **argv)
 			{
 			}
 			PublishOdom();
+			odom_pub.publish(odom_msg);
+			broadcaster.sendTransform(t);
 			if (new_speed)
 			{
 				float speed_des_left = speed_linear - (robot_width / 2) * speed_angular;

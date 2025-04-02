@@ -1,14 +1,14 @@
 {
-	"BUILD_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen",
-	"CMAKE_BINARY_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build",
-	"CMAKE_CURRENT_BINARY_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel",
-	"CMAKE_CURRENT_SOURCE_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel",
+	"BUILD_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen",
+	"CMAKE_BINARY_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel",
 	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
-	"CMAKE_SOURCE_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src",
+	"CMAKE_SOURCE_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src",
 	"HEADERS" : [],
 	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
-	"INCLUDE_DIR" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/include",
-	"MOC_COMPILATION_FILE" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/mocs_compilation.cpp",
+	"INCLUDE_DIR" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/mocs_compilation.cpp",
 	"MOC_DEFINITIONS" : 
 	[
 		"QT_CORE_LIB",
@@ -29,8 +29,8 @@
 	],
 	"MOC_INCLUDES" : 
 	[
-		"/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel",
-		"/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel",
+		"/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel",
+		"/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel",
 		"/opt/ros/noetic/include",
 		"/opt/ros/noetic/include/xmlrpcpp",
 		"/usr/include/eigen3",
@@ -60,20 +60,20 @@
 		"-c",
 		"/usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp"
 	],
-	"MOC_PREDEFS_FILE" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/moc_predefs.h",
+	"MOC_PREDEFS_FILE" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/moc_predefs.h",
 	"MOC_RELAXED_MODE" : false,
 	"MOC_SKIP" : [],
 	"MULTI_CONFIG" : false,
-	"PARALLEL" : 10,
-	"PARSE_CACHE_FILE" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/ParseCache.txt",
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/ParseCache.txt",
 	"QT_MOC_EXECUTABLE" : "/usr/lib/qt5/bin/moc",
 	"QT_UIC_EXECUTABLE" : "",
 	"QT_VERSION_MAJOR" : 5,
-	"SETTINGS_FILE" : "/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/AutogenUsed.txt",
+	"SETTINGS_FILE" : "/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/CMakeFiles/rviz_control_panel_autogen.dir/AutogenUsed.txt",
 	"SOURCES" : 
 	[
 		[
-			"/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel/src/rviz_control_panel.cpp",
+			"/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel/src/rviz_control_panel.cpp",
 			"Mu"
 		]
 	],

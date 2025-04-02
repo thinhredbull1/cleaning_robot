@@ -278,11 +278,11 @@ void send_odom() {
   robotGlobalPos.y+=dy;
   robotGlobalPos.theta+=dtheta;
   // 5x10y0.9;
-  Serial.print(robotGlobalPos.x);
+  Serial.print(robotGlobalPos.x*100,3);
   Serial.print("x");
-  Serial.print(robotGlobalPos.y);
+  Serial.print(robotGlobalPos.y*100,3);
   Serial.print("y");
-  Serial.print(robotGlobalPos.theta);
+  Serial.print(robotGlobalPos.theta*180.0/PI);
   Serial.print("v");
   Serial.println(dxy);
 
@@ -327,8 +327,8 @@ void loop() {
   if (ros_serial) receive_uart();
   // Serial.println("123");
   // delay(500);
-  bool encb_l_now = digitalRead(encb[LEFT]);
-  bool encb_r_now = digitalRead(encb[RIGHT]);
+  // bool encb_l_now = digitalRead(encb[LEFT]);
+  // bool encb_r_now = digitalRead(encb[RIGHT]);
   // if (PinStateChanged(encb_l_now, &last_a_left, &last_b_left)) {
   //   bool enca_now=digitalRead(enca[LEFT]);
   //   if (last_b_left == 0) { // rising

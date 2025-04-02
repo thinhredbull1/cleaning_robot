@@ -4,27 +4,27 @@
 	<node pkg="tf" type="static_transform_publisher" name="base_f_to_laser" args="0.0 0.0 0.25 0.0 0.0 0.0 /base_link /laser 30" />
     <!-- <node pkg="tf" type="static_transform_publisher" name="base_f_to_l" 
     args="0.0 0.0 0.0 3.14159 0.0 0.0 /base_footprint /base_link 40" /> -->
-  <node name="lidar_port"  pkg="xv_11_laser_driver"  type="neato_laser_publisher" respawn="false" output="log">
+  <!-- <node name="lidar_port"  pkg="xv_11_laser_driver"  type="neato_laser_publisher" respawn="false" output="log">
     <param name="port"         type="string" value="/dev/ttyS0"/>  
     <param name="baudrate"     type="int"    value="115200"/>
     <param name="frame_id"     type="string" value="laser"/>
      <param name="rate"     type="int" value="100"/>
-  </node>
- <node name="nox_controller" pkg="nox" type="nox_controller">
+  </node> -->
+ <node name="nox_controller" pkg="nox" type="nox_controller" output="screen">
 
       <param name="publish_tf" value="true" />
-      <param name="robot_width" value="0.314" />
+      <param name="robot_width" value="0.242" />
       <param name="publish_rate" value="20.0" />
-      <param name="GEAR_RATIO" value="2.065" />
+      <param name="GEAR_RATIO" value="1.0" />
       <param name="print_data" value="false" />
       <param name="print_yaw" value="false" />
       <param name="use_mpu" value="false" />
       <param name="bias" value="0.0" />
-      <param name="arduino" value="/dev/ttyACM0" />
+      <param name="arduino" value='/dev/ttyUSB0' />
       <param name="baud" value="57600" />
       <param name="usePulseCount" value="0" />
       <param name="WHEEL_DIAMETER" value="0.043" />
-      <param name="ENCODER_PULSES" value="725" />
+      <param name="ENCODER_PULSES" value="720" />
 
 
 	</node>	 

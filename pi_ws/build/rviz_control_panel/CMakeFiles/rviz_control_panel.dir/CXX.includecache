@@ -6,9 +6,9 @@
 
 #IncludeRegexTransform: 
 
-/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/mocs_compilation.cpp
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/rviz_control_panel/rviz_control_panel_autogen/mocs_compilation.cpp
 
-/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel/src/rviz_control_panel.cpp
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel/src/rviz_control_panel.cpp
 ros/ros.h
 -
 rviz/panel.h
@@ -28,7 +28,7 @@ QTimer
 pluginlib/class_list_macros.h
 -
 rviz_control_panel.moc
-/home/thinh/project_test/cleaning_encoder_robot/cleaning_robot/pi_ws/src/rviz_control_panel/src/rviz_control_panel.moc
+/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/rviz_control_panel/src/rviz_control_panel.moc
 
 /opt/ros/noetic/include/class_loader/class_loader.hpp
 boost/bind.hpp
