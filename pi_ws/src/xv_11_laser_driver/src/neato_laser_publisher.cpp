@@ -31,13 +31,25 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
+#include <signal.h>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <boost/asio.hpp>
 #include <xv_11_laser_driver/xv11_laser.h>
 #include <std_msgs/UInt16.h>
+xv_11_laser_driver::XV11Laser* g_laser = nullptr;
 
+// Signal handler for Ctrl+C (SIGINT)
+void signalHandler(int signum) {
+  if (g_laser != nullptr) {
+    ROS_WARN("Caught Ctrl+C, stopping laser...");
+    g_laser->end();  // Call laser.end() to stop the laser
+    g_laser->close(); // Close the connection
+  }
+  
+  ros::shutdown(); // Shut down ROS
+  exit(signum);    // Exit the program
+}
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "neato_laser_publisher");
@@ -57,12 +69,13 @@ int main(int argc, char **argv)
   priv_nh.param("firmware_version", firmware_number, 2);
 
   boost::asio::io_service io;
-
+  signal(SIGINT, signalHandler);
   try {
     xv_11_laser_driver::XV11Laser laser(port, baud_rate, firmware_number, io);
+    g_laser = &laser;
     ros::Publisher laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 1000);
     ros::Publisher motor_pub = n.advertise<std_msgs::UInt16>("rpms",1000);
-
+    ROS_WARN("START LIDAR");
     while (ros::ok()) {
       sensor_msgs::LaserScan::Ptr scan(new sensor_msgs::LaserScan);
       scan->header.frame_id = frame_id;
@@ -73,9 +86,13 @@ int main(int argc, char **argv)
       motor_pub.publish(rpms);
 
     }
+    laser.end();
+    ROS_ERROR("STOPP");
     laser.close();
     return 0;
   } catch (boost::system::system_error ex) {
+    ROS_INFO("STOP");
+    // laser.end();
     ROS_ERROR("Error instantiating laser object. Are you sure you have the correct port and baud rate? Error was %s", ex.what());
     return -1;
   }

@@ -40,8 +40,18 @@ namespace xv_11_laser_driver
 																														baud_rate_(baud_rate), firmware_(firmware), shutting_down_(false), serial_(io, port_)
 	{
 		serial_.set_option(boost::asio::serial_port_base::baud_rate(baud_rate_));
+		char dola = '$';
+		boost::asio::write(serial_, boost::asio::buffer(&dola, 1));
+		const char start[] = "startlds$";
+		boost::asio::write(serial_, boost::asio::buffer(start, sizeof(start) - 1));
 	}
-
+	void XV11Laser::end()
+	{
+		char dola = '$';
+		boost::asio::write(serial_, boost::asio::buffer(&dola, 1));
+		const char start[] = "stoplds$";
+		boost::asio::write(serial_, boost::asio::buffer(start, sizeof(start) - 1));
+	}
 	void XV11Laser::poll(sensor_msgs::LaserScan::Ptr scan)
 	{
 		uint8_t temp_char;

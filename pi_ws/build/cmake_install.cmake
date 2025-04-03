@@ -131,7 +131,7 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/gtest/cmake_install.cmake")
-  include("/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/nox/cmake_install.cmake")
+  include("/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/build/xv_11_laser_driver/cmake_install.cmake")
 
 endif()
 

@@ -17,6 +17,8 @@ string
 -
 
 /home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/xv_11_laser_driver/src/neato_laser_publisher.cpp
+signal.h
+-
 ros/ros.h
 -
 sensor_msgs/LaserScan.h
@@ -26,10 +28,6 @@ boost/asio.hpp
 xv_11_laser_driver/xv11_laser.h
 -
 std_msgs/UInt16.h
--
-
-/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/src/xv_11_laser_driver/src/xv11_laser.cpp
-xv_11_laser_driver/xv11_laser.h
 -
 
 /opt/ros/noetic/include/ros/advertise_options.h
