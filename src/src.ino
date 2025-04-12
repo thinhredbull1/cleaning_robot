@@ -124,12 +124,12 @@ bool receive_uart() {
       Serial.print(" ");
       Serial.println(robot_width);
     }
-    else if(reset_index!=-1)
+    if(reset_index!=-1)
     {
       Serial.println("RESET");
       resetOdom();
     }
-    else if(IO_index!=-1)
+    if(IO_index!=-1)
     {
       // 1I0 -> broom -> 2I0 BLOOM --> 3I esc
       int IO_Function=c.substring(0,IO_index).toInt();
@@ -300,6 +300,7 @@ void setup() {
 
   pinMode(BRD_1, OUTPUT);
   pinMode(BRD_2, OUTPUT);
+  startESCandServo();
   for (int k = 0; k < NMOTORS; k++) {
     pinMode(enca[k], INPUT_PULLUP);
     pinMode(encb[k], INPUT_PULLUP);

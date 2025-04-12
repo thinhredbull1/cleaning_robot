@@ -1,0 +1,8 @@
+prefix=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/install
+
+Name: gmcl
+Description: Description of gmcl
+Version: 1.0.1
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lgmcl_sensors -lgmcl_map -lgmcl_pf
+Requires: diagnostic_updater dynamic_reconfigure geometry_msgs nav_msgs rosbag roscpp sensor_msgs std_srvs tf2 tf2_msgs tf2_ros
