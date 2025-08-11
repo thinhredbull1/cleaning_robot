@@ -4,6 +4,7 @@
 # Cấp quyền 666 cho /dev/ttyS0, /dev/ttyAMA0, /dev/ttyUSB*, /dev/ttyACM* và thêm người dùng vào nhóm dialout
 
 # Kiểm tra quyền root
+# SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="arduino"
 if [ "$EUID" -ne 0 ]; then
   echo "Vui lòng chạy script này với quyền sudo (sudo bash $0)"
   exit 1

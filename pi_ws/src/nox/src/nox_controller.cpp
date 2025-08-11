@@ -102,48 +102,65 @@ ros::Duration d(1.0);
 std::string file_path = "/home/amr_robot/amr_robot/src/init_pose/depends/init_pose.json";
 std::string arduino_path = "/dev/ttyACM0";
 
-void sendSerial(int command)
-{
-	if (command == 0)
-	{
-		ser_.write("RESET");
-	}
-	else
-	{
-		throw std::invalid_argument("Lệnh không hợp lệ cho sendSerial(int)");
-	}
+void sendSerial(int command) {
+    try {
+        if (command == 0) {
+            ser_.write("RESET");
+        } else {
+            throw std::invalid_argument("Lệnh không hợp lệ cho sendSerial(int)");
+        }
+    } catch (const serial::IOException& e) {
+        ROS_WARN("Serial write error in sendSerial: %s", e.what());
+        ser_.close();
+    } catch (const std::exception& e) {
+        ROS_WARN("Error in sendSerial: %s", e.what());
+    }
 }
 
-// sendSerial(1, 12, 12) -> "12/12;"
-void sendSerial(int command, int left, int right)
-{
-	if (command == 1)
-	{
-		std::ostringstream oss;
-		oss << left << "/" << right << ";";
-		ser_.write(oss.str());
-	}
+void sendSerial(int command, int left, int right) {
+    try {
+        if (command == 1) {
+            std::ostringstream oss;
+            oss << left << "/" << right << ";";
+            ser_.write(oss.str());
+        }
+    } catch (const serial::IOException& e) {
+        ROS_WARN("Serial write error in sendSerial: %s", e.what());
+        ser_.close();
+    } catch (const std::exception& e) {
+        ROS_WARN("Error in sendSerial: %s", e.what());
+    }
 }
 
-// sendSerial(2, 0.3, 0.5) -> "0.3L0.5R;"
-void sendSerial(int command, double left, double right, double width)
-{
-	if (command == 2)
-	{
-		std::ostringstream oss;
-		oss << left << "L" << right << "R" << width << "W;";
-		ROS_INFO("Send odom config:%s", oss.str());
-		ser_.write(oss.str());
-	}
+void sendSerial(int command, double left, double right, double width) {
+    try {
+        if (command == 2) {
+            std::ostringstream oss;
+            oss << left << "L" << right << "R" << width << "W;";
+            ROS_INFO("Send odom config: %s", oss.str().c_str());
+            ser_.write(oss.str());
+        }
+    } catch (const serial::IOException& e) {
+        ROS_WARN("Serial write error in sendSerial: %s", e.what());
+        ser_.close();
+    } catch (const std::exception& e) {
+        ROS_WARN("Error in sendSerial: %s", e.what());
+    }
 }
-void sendSerial(int command, int IO_func, bool IO_STATE)
-{
-	if (command == 3)
-	{
-		std::ostringstream oss;
-		oss << IO_func << "I" << IO_STATE << ";";
-		ser_.write(oss.str());
-	}
+
+void sendSerial(int command, int IO_func, bool IO_STATE) {
+    try {
+        if (command == 3) {
+            std::ostringstream oss;
+            oss << IO_func << "I" << IO_STATE << ";";
+            ser_.write(oss.str());
+        }
+    } catch (const serial::IOException& e) {
+        ROS_WARN("Serial write error in sendSerial: %s", e.what());
+        ser_.close();
+    } catch (const std::exception& e) {
+        ROS_WARN("Error in sendSerial: %s", e.what());
+    }
 }
 void PublishOdom()
 {
@@ -335,7 +352,7 @@ bool SerializePulse(std::string data)
 				y_pos = std::stod(number_2_str)/100.0;
 				theta = std::stod(number_3_str)*PI/180.0;
 				dxy = std::stod(number_4_str);
-				// ROS_INFO("x:%f y:%f theta:%f v:%f", x_pos, y_pos, theta, dxy);
+				ROS_INFO("x:%f y:%f theta:%f v:%f", x_pos, y_pos, theta, dxy);
 				return 1;
 			}
 			catch (const std::invalid_argument &e)
@@ -350,7 +367,42 @@ bool SerializePulse(std::string data)
 	}
 	return 0;
 }
-
+bool initializeSerial(const std::string& port, int baudrate) {
+    try {
+        ser_.setPort(port);
+        ser_.setBaudrate(baudrate);
+        serial::Timeout to = serial::Timeout::simpleTimeout(100); // Timeout 100ms
+        ser_.setTimeout(to);
+        ser_.open();
+        if (ser_.isOpen()) {
+            ROS_INFO("Serial port %s opened at baud %d", port.c_str(), baudrate);
+            return true;
+        } else {
+            ROS_ERROR("Failed to open serial port %s", port.c_str());
+            return false;
+        }
+    } catch (const serial::IOException& e) {
+        ROS_ERROR("IOException opening serial: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        ROS_ERROR("Error opening serial: %s", e.what());
+        return false;
+    }
+}
+bool reconnectSerial(const std::string& port, int baudrate, int max_attempts = 5) {
+    ROS_WARN("Trying to reconnect to serial port %s", port.c_str());
+    for (int attempt = 1; attempt <= max_attempts; ++attempt) {
+        if (initializeSerial(port, baudrate)) {
+            ROS_INFO("Reconnected on attempt %d", attempt);
+            // Gửi lại config sau khi reconnect
+            return true;
+        }
+        ROS_WARN("Reconnect attempt %d/%d failed", attempt, max_attempts);
+        ros::Duration(0.2).sleep(); // Chờ 0.5 giây trước khi thử lại
+    }
+    ROS_ERROR("Failed to reconnect after %d attempts", max_attempts);
+    return false;
+}
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "nox_controller");
@@ -420,30 +472,55 @@ int main(int argc, char **argv)
 	// 	"id_init_pose", 10,
 	// 	boost::bind(idInitPoseCallback, _1, boost::ref(initpose_pub)));
 	ros::Rate r(rate);
-
+	ros::Time last_valid_data = ros::Time::now();
+    const double disconnection_timeout = 5.0; // Timeout in seconds
 	previous_time = ros::Time::now(); // Khởi tạo thời gian trước đó
 	while (n.ok())
 	{
 		ros::spinOnce();
-		if (ser_.available())
-		{
-			ros::Time check_time = ros::Time::now();
+		if (!ser_.isOpen()) {
+            ROS_WARN("Serial port disconnected. Trying to reconnect...");
+            if (!reconnectSerial(arduino_path, baud)) {
+                ROS_WARN("Reconnect failed. Waiting before next try.");
+                ros::Duration(1.0).sleep();
+                continue;
+            }
+        }
+		try {
+			if (ser_.available()) {
+				ros::Time check_time = ros::Time::now();
+				std::string result = ser_.readline();
+				timeReadBonus = ros::Time::now() - check_time;
 
-			std::string result = ser_.readline();
-			// ROS_INFO("%s",result.c_str());
-			timeReadBonus= ros::Time::now() - check_time;
-			// ROS_INFO("time_read:%f", time_read.toSec());
-			if (SerializePulse(result))
-			{
+				if (SerializePulse(result)) {
+					last_valid_data = ros::Time::now(); // Cập nhật thời gian nhận dữ liệu hợp lệ
+					current_time = ros::Time::now();
+					ros::Duration time_diff = current_time - previous_time;
+					previous_time = current_time;
+					dt = time_diff.toSec();
+					check_data = 1;
 
-				current_time = ros::Time::now();
-				ros::Duration time_diff = current_time - previous_time;
-				previous_time = current_time;
-				check_data = 1;
-				dt = time_diff.toSec();
+					if (usePulseCount) CalculateOdom();
+					PublishOdom();
+					odom_pub.publish(odom_msg);
+					broadcaster.sendTransform(t);
+				}
 			}
-			//  ROS_INFO("msg : %s", result.c_str());
-		}
+        } catch (const serial::IOException& e) {
+            ROS_WARN("Serial IO error: %s. Closing port and reconnecting.", e.what());
+            ser_.close();
+            continue; // Tiếp tục vòng lặp, sẽ reconnect ở lần sau
+        } catch (const std::exception& e) {
+            ROS_WARN("Unexpected error in serial read: %s", e.what());
+            ser_.close();
+            continue;
+        }
+
+        // Kiểm tra timeout mất kết nối
+        // if ((ros::Time::now() - last_valid_data).toSec() > disconnection_timeout) {
+        //     ROS_WARN("No valid data for %f seconds. Assuming disconnection.", disconnection_timeout);
+        //     ser_.close();
+        // }
 
 		// Time in s
 		// ROS_INFO("dt : %f", dt);
