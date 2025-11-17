@@ -20,7 +20,7 @@ class MecanumRobot:
     def __init__(self):
         rospy.init_node('mecanum_robot')
         print("INIT")
-        self.NMOTORS = 2  
+        self.NMOTORS = 4  
         self.MotorError=False
         self.total_length = 41.04
           # Adjust this value based on your robot design
@@ -35,6 +35,7 @@ class MecanumRobot:
         self.M_RIGHT_UP=1
         self.M_LEFT_DOWN=2
         self.M_LEFT_UP=3
+        self.coeff_speed=1.0
         self.moving=False
         # self.x_offset = 1.0  # Scaling factor for x
         # self.y_offset = 1.0  # Scaling factor for y
@@ -42,7 +43,7 @@ class MecanumRobot:
         self.use_imu=rospy.get_param('~use_imu',False) #cm
         print(self.use_imu)
         
-        rospy.Subscriber('/toggle_topic',Int32, self.CylinderCB)
+        # rospy.Subscriber('/toggle_topic',Int32, self.CylinderCB)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.last_pose = None
         self.last_time = rospy.Time.now()
@@ -70,7 +71,7 @@ class MecanumRobot:
         self.last_speed_z=0.0
         self.a_coeff=0.52188555
         self.b_coeff=0.23905722
-        self.last_encod=np.zeros(2)
+        self.last_encod=np.zeros(4)
         self.xylanh=1
         self.dtheta=0.0
         self.cmd_msg = Twist()  # Initialize a Twist message
@@ -130,25 +131,28 @@ class MecanumRobot:
         elif new_delta<-10000: #last_encod=32760 --> motor quay thuan encoder_now=-32760 --> xung = +16
             new_delta=(32768+encoder_now)+(32768-last_encod)
         return new_delta
-    def CaldiffEncoder(self,encoder_l,encoder_r):
-        delta_encod_l=self.NormalizeOverflow(encoder_l,self.last_encod[self.M_LEFT])
-        delta_encod_r=self.NormalizeOverflow(encoder_r,self.last_encod[self.M_RIGHT])          
-        self.last_encod[self.M_LEFT]=encoder_l
-        self.last_encod[self.M_RIGHT]=encoder_r
+    def CaldiffEncoder(self,motor_left, motor_right):
+        delta_encod_l=self.NormalizeOverflow(self.encoder_total[motor_left],self.last_encod[motor_left])
+        delta_encod_r=self.NormalizeOverflow(self.encoder_total[motor_right],self.last_encod[motor_right])          
+        self.last_encod[motor_left]=self.encoder_total[motor_left]
+        self.last_encod[motor_right]=self.encoder_total[motor_right]
         return delta_encod_l,delta_encod_r
     def CylinderCB(self,msg):
         self.xylanh=msg.data
     def updatePos(self):
         encoderTick=[0,0]
         delta_tick=[0,0,0,0]
-        delta=[0,0,0,0]
-        delta_l,delta_r=self.CaldiffEncoder(self.encoder_total[0],self.encoder_total[1])
-        encoderTick=[delta_l,delta_r]
+        delta=[0,0]
+        delta_l_u,delta_r_u=self.CaldiffEncoder(self.M_LEFT_UP,self.M_RIGHT_UP)
+        delta_l,delta_r=self.CaldiffEncoder(self.M_LEFT_DOWN,self.M_RIGHT_DOWN)
+        encoderTick=[delta_l_u,delta_r_u,delta_l,delta_r]
         for i in range(self.NMOTORS):
-            delta[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
+            delta_tick[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
+        delta[self.M_LEFT]= (delta_tick[self.M_LEFT_UP]+delta_tick[self.M_LEFT_DOWN])/2.0
+        delta[self.M_RIGHT]= (delta_tick[self.M_RIGHT_UP]+delta_tick[self.M_RIGHT_DOWN])/2.0
         dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
-        # dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
-        dtheta=self.dtheta
+        dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
+        # dtheta=self.dtheta
    
         dx = math.cos(self.robot_pose[2]+(dtheta/2.0)) * dxy
         dy = math.sin(self.robot_pose[2]+(dtheta/2.0)) * dxy
@@ -253,10 +257,13 @@ class MecanumRobot:
         ## 5 hz 0.2s 
         ## vx w --> speed dong co
         speed_cm_s = np.zeros(self.NMOTORS)
-        coeff=1.3
-        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta * self.total_length/2.0)
-        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta * self.total_length/2.0)
-        #
+
+        left = (vx*self.coeff_speed - dtheta * self.total_length/2.0)
+        right = (vx*self.coeff_speed + dtheta * self.total_length/2.0)
+        speed_cm_s[self.M_LEFT_UP] = left
+        speed_cm_s[self.M_LEFT_DOWN] = left
+        speed_cm_s[self.M_RIGHT_UP] = right
+        speed_cm_s[self.M_RIGHT_DOWN] = right
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
@@ -265,15 +272,16 @@ class MecanumRobot:
         print(self.speed_desired)
     def runRobot(self):
         speed_wheel=[0,0,0,0]
+        max_speed=60
         for i in range(self.NMOTORS):
             # if(i in self.inverseDir):
             #     self.speed_desired[i]=-self.speed_desired[i]
             speed_wheel[i]=int(self.speed_desired[i])
-            if(speed_wheel[i]>60):
-                speed_wheel[i]=60
-            elif speed_wheel[i]<-60:
-                speed_wheel[i]=-60
-        serial_data = "{}/{};".format(speed_wheel[self.M_LEFT], speed_wheel[self.M_RIGHT])
+            if(speed_wheel[i]>max_speed):
+                speed_wheel[i]=max_speed
+            elif speed_wheel[i]<-max_speed:
+                speed_wheel[i]=-max_speed
+        serial_data = "{}/{}&{}*{};".format(speed_wheel[self.M_LEFT_UP], speed_wheel[self.M_LEFT_DOWN],speed_wheel[self.M_RIGHT_UP],speed_wheel[self.M_RIGHT_DOWN])
         self.moving=True
         # Gửi dữ liệu xuống serial
         # print(serial_data)
@@ -312,7 +320,7 @@ class MecanumRobot:
                     if len(parts) == 3:
                         self.encoder_total[0] = int(parts[0])
                         self.encoder_total[1] = int(parts[1])
-                        self.dtheta=float(parts[2])/100.0
+                        # self.dtheta=float(parts[2])/100.0
                         self.updatePos()
                         # rospy.loginfo(f"Encoders: {self.encoder_total}")
             except Exception as e:

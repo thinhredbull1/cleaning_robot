@@ -104,8 +104,8 @@ find_package( PkgConfig REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES nox
+  # INCLUDE_DIRS include
+  # LIBRARIES nox
   CATKIN_DEPENDS roscpp tf_conversions geometry_msgs 
   DEPENDS system_lib
 )
@@ -116,12 +116,12 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
- # include
-  ${catkin_INCLUDE_DIRS}
-  # ${jsoncpp_INCLUDE_DIRS}
-  ${PROJECT_SOURCE_DIR}/../serial/include
-)
+# include_directories(
+#  # include
+#   ${catkin_INCLUDE_DIRS}
+#   # ${jsoncpp_INCLUDE_DIRS}
+#   ${PROJECT_SOURCE_DIR}/../serial/include
+# )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -203,9 +203,4 @@ include_directories(
 
 catkin_install_python(PROGRAMS scripts/mpu6050.py scripts/test_odom.py scripts/pubVel.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-add_executable(nox_controller src/nox_controller.cpp)
-target_link_libraries(nox_controller 
-  ${catkin_LIBRARIES} 
-  serial
 )
