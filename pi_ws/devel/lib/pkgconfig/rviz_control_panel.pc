@@ -1,8 +1,0 @@
-prefix=/home/thinh/project_all/cleaning_robot_encoder/arduino/pi_ws/devel
-
-Name: rviz_control_panel
-Description: Description of rviz_control_panel
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib -lrviz_control_panel
-Requires: geometry_msgs roscpp rospy std_msgs
