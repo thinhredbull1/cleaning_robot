@@ -105,7 +105,8 @@ class MecanumRobot:
         # self.last_time=time.time()
         self.speed_wheel_cm_s=[0,0,0,0]
         self.getCmdVel=False
-        self.cmPerCount=(math.pi * self.WHEEL_DIAMETER) / self.ENCODER_TOTAL # 7.05
+        encoder_parameter= (math.pi * self.WHEEL_DIAMETER) / self.ENCODER_TOTAL
+        self.cmPerCount=[encoder_parameter,encoder_parameter,encoder_parameter,encoder_parameter] # 7.05
         # rospy.sleep(1.5)
         # self.motorUp=ZLAC8015D.Controller(modbus_connection,id=1) # 0 forn
         # self.motorDown=ZLAC8015D.Controller(modbus_connection,id=2) # 1
@@ -147,7 +148,7 @@ class MecanumRobot:
         delta_l,delta_r=self.CaldiffEncoder(self.M_LEFT_DOWN,self.M_RIGHT_DOWN)
         encoderTick=[delta_l_u,delta_r_u,delta_l,delta_r]
         for i in range(self.NMOTORS):
-            delta_tick[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
+            delta_tick[i] =  encoderTick[i] *self.cmPerCount[i]  # 0.14260
         delta[self.M_LEFT]= (delta_tick[self.M_LEFT_UP]+delta_tick[self.M_LEFT_DOWN])/2.0
         delta[self.M_RIGHT]= (delta_tick[self.M_RIGHT_UP]+delta_tick[self.M_RIGHT_DOWN])/2.0
         dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
@@ -267,7 +268,7 @@ class MecanumRobot:
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
-            self.speed_desired[i] = speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount))
+            self.speed_desired[i] = speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount[i]))
             self.speed_desired[i]=int(speed_cm_s[i])
         print(self.speed_desired)
     def runRobot(self):
@@ -281,7 +282,7 @@ class MecanumRobot:
                 speed_wheel[i]=max_speed
             elif speed_wheel[i]<-max_speed:
                 speed_wheel[i]=-max_speed
-        serial_data = "{}/{}&{}*{};".format(speed_wheel[self.M_LEFT_UP], speed_wheel[self.M_LEFT_DOWN],speed_wheel[self.M_RIGHT_UP],speed_wheel[self.M_RIGHT_DOWN])
+        serial_data = "{}/{}*{};".format(speed_wheel[self.M_LEFT_UP],speed_wheel[self.M_RIGHT_UP],speed_wheel[self.M_RIGHT_DOWN])
         self.moving=True
         # Gửi dữ liệu xuống serial
         # print(serial_data)
@@ -308,7 +309,7 @@ class MecanumRobot:
         print("Mode: "+str(self.test_mode))
         print("Wheel: "+str(self.WHEEL_DIAMETER))
         print("x_offset:"+str(self.x_offset))
-        print("cm_per_count:"+str(self.cmPerCount))
+        print("cm_per_count:"+str(self.cmPerCount[0]))
         while not rospy.is_shutdown():
             try:
                 if self.serial_port.in_waiting > 0:

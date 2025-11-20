@@ -48,9 +48,13 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
     previousMillis = currentMillis;
   }
 }
-#define NMOTORS 2
+#define NMOTORS 4
 #define LEFT 0
 #define RIGHT 1
+#define M_L_UP 0
+#define M_L_DOWN 1 
+#define M_R_UP 2
+#define M_R_DOWN 3
 #define LOOP_PUB 100 //ms
 //macro for detection af rasing edge
 #define RE(signal, state) (state=(state<<1)|(signal&1)&3)==1

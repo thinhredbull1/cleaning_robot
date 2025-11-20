@@ -1,8 +1,8 @@
 # FLOW:
 1. ServerInter.py --> Parse waypoint from server. --> Get to moving server. --> Also get localization data and status for publish state.
 2. MovingServer.py --> Get waypoint from server --> publish DOING msg for hardwareInterface --> wait MOVING msg for move_base start -->  when follow waypoint success -> publish SUCCESS.
-3. HardwareInterface.py --> Control robot vel and process. --> First in WAITING MODE --> wait DOING msg MovingServer --> wait arduino receive for lock or unlock or module ... --> arduino send "OK " --> change to DOING Mode --> Send MOVING msg to MovingServer for start move_base --> WAITING for msg SUCCESS --> change to SUCCESS mode --> send to arduino,sim and wait response --> done.
-
+3. HardwareInterface.py -> First in WAITING MODE --> wait DOING msg MovingServer --> wait arduino receive for lock or unlock or module ... --> arduino send "OK " --> change to DOING Mode --> Send MOVING msg to MovingServer for start move_base --> WAITING for msg SUCCESS --> change to SUCCESS mode --> send to arduino,sim and wait response --> done.
+4.CMD vel --> esp32
 
 ## IMPLEMENT step: 
 1. Get encoder and odometry working with hardwareInterFace --> Need esp32 code and HarwareInterface --> 1-2 day
