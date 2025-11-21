@@ -114,7 +114,7 @@ class MecanumRobot:
         self.ms_pub_encoder=50.0
         self.rate_hz=(2000.0/self.ms_pub_encoder)
         # self.dt=1.0/self.rate_hz
-        self.ms_pid=20
+        self.ms_pid=10.0
         print(f"total:{self.total_length}")
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz

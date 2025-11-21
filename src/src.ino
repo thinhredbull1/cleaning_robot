@@ -240,16 +240,14 @@ void control_speed()
 }
 void send_odom()
 {
-  if (ros_serial)
-  {
-    unsigned long current_time = micros();
-    float dt = (current_time - publish_time) / 1000000.0;
-    publish_time = current_time;
-    String odom_data = String(robotGlobalPos.x, 4) + "," + String(robotGlobalPos.y, 4) + "," + String(robotGlobalPos.theta, 4) + ";";
-    Serial.print(odom_data);
-    publish_encoder[M_L_UP] = 0;
-    publish_encoder[RIGHT] = 0;
-  }
+
+ 
+    String odom_data = String(publish_encoder[M_L_UP]) + "/" + String(publish_encoder[M_L_DOWN]) + "&" + String(publish_encoder[M_R_UP])+"*"+String(publish_encoder[M_R_DOWN]) + ";";
+    Serial.println(odom_data);
+    // for(int i=0;i<NMOTORS;i++){
+    //   publish_encoder[i]=0;
+    // }
+  
 }
 void setup()
 {

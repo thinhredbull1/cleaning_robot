@@ -55,7 +55,7 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
 #define M_L_DOWN 1 
 #define M_R_UP 2
 #define M_R_DOWN 3
-#define LOOP_PUB 100 //ms
+#define LOOP_PUB 50 // 50ms
 //macro for detection af rasing edge
 #define RE(signal, state) (state=(state<<1)|(signal&1)&3)==1
 //macro for detection af falling edge
@@ -82,7 +82,7 @@ typedef struct robot_coord{
   double y;
   double theta;
 }robot_pos;
-#define ros_serial 1
+#define ros_serial 0
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
 
@@ -105,9 +105,9 @@ const int dir[] = { 14, 16 };
 const int dir2[] = { 27, 4 };
 const int dir_encod_M1=1;
 const int dir_encod_M0=-1; 
-const float LOOP_FREQUENCY=50.0; // hz
+const float LOOP_FREQUENCY=100.0; // hz
 const float delta_time=1.0/LOOP_FREQUENCY;
-const float LOOP_MS=1000.0*delta_time;
+const float LOOP_MS=1000.0*delta_time; // 50 hz - 20ms
 const float speed_ff=10.0; // 100 Hz
 const bool serial_tune = 0;
 const int time_run_test=2000;
