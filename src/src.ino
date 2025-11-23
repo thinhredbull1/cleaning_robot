@@ -1,14 +1,13 @@
 #include "config.h"
 // #include <util/atomic.h>
 // #include "digitalWriteFast.h"
-#include <ESP32Servo.h>
 double m_per_count_l = 0;
 double m_per_count_r = 0;
 double robot_width = 1;
-Servo SV1;
+
 // right ~ 85 count/ vong
 // left ~ 720
-Servo ESC1;
+
 volatile int speed_desired[] = {0, 0};
 volatile int encoder_count[NMOTORS];
 long publish_encoder[NMOTORS];
@@ -21,25 +20,24 @@ robot_pos robotGlobalPos;
 void control_motor(int motor, int speed)
 {
   bool direct = speed > 0 ? 1 : 0;
+  speed=constrain(speed,-255,255);
   if (speed == 0)
   {
     analogWrite(pwm[motor], 0);
     digitalWrite(dir[motor], 0);
-    digitalWrite(dir2[motor], 0);
     return;
   }
   // digitalWrite(dir[motor],direct);
   if (direct)
   {
-    analogWrite(pwm[motor], abs(speed));
+    analogWrite(pwm[motor], 255-abs(speed));
     digitalWrite(dir[motor], 1);
-    digitalWrite(dir2[motor], 0);
+
   }
   else
   {
     analogWrite(pwm[motor], abs(speed));
     digitalWrite(dir[motor], 0);
-    digitalWrite(dir2[motor], 1);
   }
 }
 void IRAM_ATTR encoderLeftMotor2()
@@ -128,10 +126,10 @@ bool receive_uart()
       int index_now_2 = c.indexOf("*");
       // speed_linear = c.substring(0, index_now).toFloat();
       // angular_speed = (c.substring(index_now + 1).toFloat());
-      speed_desired[M_L_UPP] = c.substring(0, index_now).toInt();
+      speed_desired[M_L_UP] = c.substring(0, index_now).toInt();
       speed_desired[M_R_UP] = c.substring(index_now + 1, index_now_2).toInt();
       speed_desired[M_R_DOWN] = c.substring(index_now_2 + 1).toInt();
-      speed_desired[M_L_DOWN] = speed_desired[M_L_UPP];
+      speed_desired[M_L_DOWN] = speed_desired[M_L_UP];
       // int left_sp = c.substring(0, index_now).toInt();
       // int right_sp = c.substring(index_now + 1).toInt();
       // control_motor(0, left_sp);
@@ -152,7 +150,7 @@ bool receive_uart()
         float new_ki = c.substring(index_kp_desired + 1, index_cal).toFloat();
         float new_kd = c.substring(index_cal + 1).toFloat();
 
-        pid[M_L_UPP].setParams(new_kp, new_ki, new_kd, 255);
+        pid[M_L_UP].setParams(new_kp, new_ki, new_kd, 255);
         pid[M_R_UP].setParams(new_kp, new_ki, new_kd, 255);
 
         Serial.print(pid[M_R_UP].GetKp());
@@ -258,14 +256,14 @@ void setup()
     pinMode(encb[k], INPUT_PULLUP);
     pinMode(pwm[k], OUTPUT);
     pinMode(dir[k], OUTPUT);
-    pinMode(dir2[k], OUTPUT);
+    // pinMode(dir2[k], OUTPUT);
   }
   for (int i = 0; i < 2; i++)
   {
     control_motor(i, 0);
   }
   pid[M_L_UP].setParams(7.8, 22.8, 0, 255);  // 39.2 34.6
-  pid[M_L_R].setParams(7.8, 22.8, 0, 255); // 39.2 34.6
+  pid[M_R_UP].setParams(7.8, 22.8, 0, 255); // 39.2 34.6
   attachInterrupt(digitalPinToInterrupt(enca[M_L_UP]), encoderLeftMotor, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[M_R_UP]), encoderRightMotor, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[M_L_DOWN]), encoderLeftMotor2, CHANGE);

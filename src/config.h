@@ -98,11 +98,10 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {25,22};
-const int encb[]= {33,32}; 
-const int pwm[] = { 26, 2 };  //{10,11}
-const int dir[] = { 14, 16 };
-const int dir2[] = { 27, 4 };
+const int enca[] = {5,13,27,25};
+const int encb[]= {15,14,26,33}; 
+const int pwm[] = { 23, 21,18,16 };  //{10,11}
+const int dir[] = { 22, 19 ,17,4};
 const int dir_encod_M1=1;
 const int dir_encod_M0=-1; 
 const float LOOP_FREQUENCY=100.0; // hz
