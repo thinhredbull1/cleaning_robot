@@ -1,44 +1,46 @@
-class SimplePID{
-  private:
-    float kp, kd, ki, umax;
-    float eprev, eintegral,last_u;
-  public:
-    SimplePID() : kp(1), kd(0), ki(0), umax(255), eprev(0.0), eintegral(0.0) {}
-     void reset_all()
-    {
-        eintegral=0;
-        eprev=0;
-    } 
-    void setParams(float kpIn, float kiIn, float kdIn, float umaxIn){
-      kp = kpIn; kd = kdIn; ki = kiIn; umax = umaxIn;
+class SimplePID {
+private:
+  float kp, kd, ki, umax;
+  float eintegral, u, last_e_2,last_e;
+public:
+  SimplePID()
+    : kp(1), kd(0), ki(0), umax(255), last_e(0.0), last_e_2(0.0) {}
+  void reset_all() {
+    last_e_2 = 0;
+    last_e = 0;
+    u=0;
+  }
+  void setParams(float kpIn, float kiIn, float kdIn, float umaxIn) {
+    kp = kpIn;
+    kd = kdIn;
+    ki = kiIn;
+    umax = umaxIn;
+    reset_all();
+  }
+  float compute(int value, int target, float deltaT) {
+    if (target == 0) {
       reset_all();
+      return 0;
     }
-    float compute(int value, int target, float deltaT){
-      if(target==0){
-        reset_all();
-        return 0;
-      }
-      int e = target - value;
-      float dedt = (e-eprev)/(deltaT);
-      if(abs((int)last_u) >= umax && (((e >= 0) && (eintegral >= 0)) || ((e < 0) && (eintegral < 0))))
-      {
-        eintegral = eintegral;
-      }
-      else{
-        eintegral+=e*deltaT;
-      }
-      eintegral=constrain(eintegral,-120,120);
-      float u = kp*e + kd*dedt + ki*eintegral;
-      if( u > umax)u = umax;
-      else if(u<-umax)u=-umax;
-      last_u=u;
-      eprev = e;
-      return u;
-    }
-    float GetKp(){return kp;}
-    float GetKi(){return ki;}
-    float GetKd(){return kd;}
-   
+    int e = target - value;
+    float delta_u=kp*(e-last_e)+ki*e+kd*(e-2*last_e+last_e_2);
+    
+    u +=delta_u;
+    if (u > umax) u = umax;
+    else if (u < -umax) u = -umax;
+    last_e_2=last_e;
+    last_e=e;
+    return u;
+  }
+  float GetKp() {
+    return kp;
+  }
+  float GetKi() {
+    return ki;
+  }
+  float GetKd() {
+    return kd;
+  }
 };
 typedef void (*CallbackFunction)();
 void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long intervalTime, unsigned long &previousMillis) {
@@ -82,7 +84,7 @@ typedef struct robot_coord{
   double y;
   double theta;
 }robot_pos;
-#define ros_serial 0
+#define ros_serial 1
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
 
@@ -98,10 +100,18 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {5,13,27,25};
-const int encb[]= {15,14,26,33}; 
-const int pwm[] = { 23, 21,18,16 };  //{10,11}
-const int dir[] = { 22, 19 ,17,4};
+const int enca[] = {25,27,13,5};
+const int encb[]= {33,26,14,15}; 
+const int pwm[] = { 4,17,19,22 };  //{10,11}
+const int dir[] = { 16,18 ,21,23};
+const int dir_M_L_UP=1;
+const int dir_M_L_DOWN=1;
+const int dir_M_R_UP=-1;
+const int dir_M_R_DOWN=-1;
+int dir_encod[]={1,1,1,1};
+float p_gain_default=15.15;
+float i_gain_default=1.05;
+float d_gain_default=1.0;
 const int dir_encod_M1=1;
 const int dir_encod_M0=-1; 
 const float LOOP_FREQUENCY=100.0; // hz
