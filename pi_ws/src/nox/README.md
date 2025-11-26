@@ -5,7 +5,7 @@
 4.CMD vel --> esp32
 
 ## IMPLEMENT step: 
-1. Get encoder and odometry working with hardwareInterFace --> Need esp32 code and HarwareInterface --> 1-2 day
+1. Get encoder and odometry working with pubvelencoder --> Need esp32 code and pubvelencoder --> 1-2 day
 2. State estimation fusion with EKF for odom and IMU only --> robot_localiztion package --> lidar package for check result --> 2-3 day
 3. Navigation without map with EKF (odom and IMU ) --> checking waypoint process and path tracking --> 1-2 day
 4. GPS  fusing robot localization , sim integrate- 1-2 day.
