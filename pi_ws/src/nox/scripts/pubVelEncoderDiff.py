@@ -1,4 +1,4 @@
-from turtle import left, right
+#!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import Odometry
 import tf
@@ -50,8 +50,8 @@ class MecanumRobot:
         self.last_time = rospy.Time.now()
         self.odom_pub = rospy.Publisher('/odom', Odometry, queue_size=5)
         # print("not use imu")
-        self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',13.2) #cm
-        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',850)
+        self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',9.5) #cm
+        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1750)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -80,7 +80,7 @@ class MecanumRobot:
         self.MotorErrorPub=rospy.Publisher('MOTOR_ERROR',Bool,queue_size=1)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.delta_encod_total1=np.zeros(4)
-        self.serial_port_name = rospy.get_param('port', '/dev/ttyUSB0')
+        self.serial_port_name = rospy.get_param('port', '/dev/esp32')
         self.baud = rospy.get_param('baud', 57600)
         # self.pub_encoder=rospy.publish
         self.serial_port = serial.Serial(self.serial_port_name,  self.baud)
@@ -311,6 +311,7 @@ class MecanumRobot:
         print("Wheel: "+str(self.WHEEL_DIAMETER))
         print("x_offset:"+str(self.x_offset))
         print("cm_per_count:"+str(self.cmPerCount))
+        first_rec=0
         while not rospy.is_shutdown():
             try:
                 if self.serial_port.in_waiting > 0:
@@ -325,18 +326,27 @@ class MecanumRobot:
                     # Phải: R_up * R_down
                     left_right = parts.split("&")
                     if len(left_right) == 2:
+
                         left_ = left_right[0].split("/")      # [L_up, L_down]
                         right_ = left_right[1].split("*")     # [R_up, R_down]
-                        self.encoder_total[0] = int(parts[0])
-                        self.encoder_total[1] = int(parts[1])
+                        # self.encoder_total[0] = int(parts[0])
+                        # self.encoder_total[1] = int(parts[1])
                         if len(left_) == 2 and len(right_) == 2:
+                            
                             self.encoder_total[0] = int(left_[0])     # L_up
                             self.encoder_total[1] = int(left_[1])     # L_down
                             self.encoder_total[2] = int(right_[0])    # R_up
                             self.encoder_total[3] = int(right_[1])    # R_down
+                            if not first_rec:
+                                for i in range(0,self.NMOTORS):
+                                    self.last_encod[i]=self.encoder_total[i]
+                                    if(self.encoder_total[i]!=0):
+                                        first_rec=1
+                            else:
+                                
                         # self.dtheta=float(parts[2])/100.0
-                            self.updatePos()
-                        # rospy.loginfo(f"Encoders: {self.encoder_total}")
+                                self.updatePos()
+                            # rospy.loginfo(f"Encoders: {self.encoder_total}")
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()
