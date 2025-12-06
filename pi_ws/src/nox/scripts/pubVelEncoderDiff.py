@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import rospy
 from nav_msgs.msg import Odometry
 import tf
@@ -51,7 +52,7 @@ class MecanumRobot:
         self.odom_pub = rospy.Publisher('/odom', Odometry, queue_size=5)
         # print("not use imu")
         self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',9.5) #cm
-        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1750)
+        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1798)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -202,21 +203,26 @@ class MecanumRobot:
             odom.pose.pose.orientation.y = q[1]
             odom.pose.pose.orientation.z = q[2]
             odom.pose.pose.orientation.w = q[3]
+            odom_twist_yaw=0.35
+            if(dtheta==0):
+                odom_twist_yaw=1e-4
             odom.pose.covariance = [
             0.1, 0,    0,    0,    0,    0,
             0,    0.1, 0,    0,    0,    0,
             0,    0,    1e6, 0,    0,    0,
             0,    0,    0,    1e6, 0,    0,
             0,    0,    0,    0,    1e6, 0,
-            0,    0,    0,    0,    0,    0.1
+            0,    0,    0,    0,    0,   odom_twist_yaw
             ]
+            
+          
             odom.twist.covariance = [
             0.05, 0,    0,    0,    0,    0,
             0,    0.05, 0,    0,    0,    0,
             0,    0,    1e6, 0,    0,    0,
             0,    0,    0,    1e6, 0,    0,
             0,    0,    0,    0,    1e6, 0,
-            0,    0,    0,    0,    0,    0.1
+            0,    0,    0,    0,    0,    odom_twist_yaw
             ]
             # odom.pose.covariance = ODOM_POSE_COVARIANCE
             # odom.twist.covariance = ODOM_TWIST_COVARIANCE
@@ -240,13 +246,13 @@ class MecanumRobot:
 
             # Publish TF
             
-            self.tf_broadcaster.sendTransform(
-                (odom_x, odom_y, 0),
-                q,
-                rospy.Time.now(),
-                "base_link",
-                "odom"
-            )
+            # self.tf_broadcaster.sendTransform(
+            #     (odom_x, odom_y, 0),
+            #     q,
+            #     rospy.Time.now(),
+            #     "base_link",
+            #     "odom"
+            # )
             # print(f"{self.theta_now}")
         self.last_time_encod=current_time
 
@@ -266,6 +272,7 @@ class MecanumRobot:
         speed_cm_s[self.M_LEFT_DOWN] = left
         speed_cm_s[self.M_RIGHT_UP] = right
         speed_cm_s[self.M_RIGHT_DOWN] = right
+        
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
@@ -275,10 +282,11 @@ class MecanumRobot:
     def runRobot(self):
         speed_wheel=[0,0,0,0]
         max_speed=30
+        scale_factor=0.71
         for i in range(self.NMOTORS):
             # if(i in self.inverseDir):
             #     self.speed_desired[i]=-self.speed_desired[i]
-            speed_wheel[i]=int(self.speed_desired[i])
+            speed_wheel[i]=int(self.speed_desired[i]*scale_factor)
             if(speed_wheel[i]>max_speed):
                 speed_wheel[i]=max_speed
             elif speed_wheel[i]<-max_speed:

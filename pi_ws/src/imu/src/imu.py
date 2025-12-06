@@ -24,8 +24,8 @@ class BNO055Node:
         # self.bno.mode = adafruit_bno055.NDOF_MODE  # gyro + accel, no mag
         self.last_imu_msg=Imu()
         # --- Covariance matrices ---
-        self.orientation_cov = [0.19320297061877081, 0, 0, 0, 0.01985739557701275, 0, 0, 0, 6.70298336970668e-06]
-        self.angular_velocity_cov = [1.4056574841526518e-03, 0, 0, 0, 2.504884899521743e-03, 0, 0, 0, 2.407325369826665e-07]
+        self.orientation_cov = [0.19320297061877081, 0, 0, 0, 0.01985739557701275, 0, 0, 0, 6.70298336970668e-03]
+        self.angular_velocity_cov = [1.4056574841526518e-02, 0, 0, 0, 2.504884899521743e-02, 0, 0, 0, 2.407325369826665e-03]
         self.linear_acceleration_cov = [0.05417740681601826, 0, 0, 0, 0.000143956145868615, 0, 0, 0, 215.17343152207158]
        
         if not self.wait_for_calibration(timeout=10.0):
@@ -50,7 +50,7 @@ class BNO055Node:
                 rospy.loginfo(f"Calibration → System:{sys}  Gyro:{gyro}  Accel:{accel}  Mag:{mag}")
 
                
-                if sys > 0 and gyro == 3 and accel >= 0 and mag >= 0:
+                if sys >= 0 and gyro >= 3 and accel >= 0 and mag >= 0:
                     rospy.loginfo("BNO055 calibration complete!")
                     return True
             except Exception as e:
@@ -142,18 +142,6 @@ class BNO055Node:
         while not rospy.is_shutdown():
             imu_msg = self.read_imu()
             if imu_msg is not None:
-
-                t = TransformStamped()
-                t.header.stamp = imu_msg.header.stamp
-                t.header.frame_id = "base_link"      # parent
-                t.child_frame_id  = "imu_link"       # child
-                t.transform.translation.x = 0.0
-                t.transform.translation.y = 0.0
-                t.transform.translation.z = 0.0
-
-                    # Dữ liệu tốt → publish TF thật
-                t.transform.rotation = imu_msg.orientation
-                self.tf_broadcaster.sendTransform(t)
                 self.pub.publish(imu_msg)
                
 

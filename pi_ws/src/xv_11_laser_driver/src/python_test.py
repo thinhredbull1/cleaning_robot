@@ -3,7 +3,7 @@
 import serial
 import math
 import numpy as np
-import cv2 as cv
+#import cv2 as cv
 from random import random
 
 window_name = 'image'
@@ -21,16 +21,6 @@ values = [0] * arraysize
 distances = [0] * 360
 min_reflectivity = 10
 
-def draw_lidar():
-    print ("Distances", distances)
-    img = np.zeros((imgsize,imgsize,3), np.uint8)
-    for angle in range(360):
-        if distances[angle] > 0:
-            x = int(math.sin(angle * math.pi * 2 / 360) * distances[angle] * 0.1 + centerX)
-            y = int(math.cos(angle * math.pi * 2 / 360) * distances[angle] * 0.1 + centerY)
-            cv.circle(img,(x,y),2, (255,255,255),-1)
-    cv.imshow(window_name, img)
-    cv.waitKey(10)
 
 
 def get_int(lb, hb):
@@ -62,7 +52,7 @@ def process_lidar_data():
     if checksum1 == checksum2 and angle < 360:
         # print("Data: ", angle, speed, distance, reflectivity, checksum1, checksum2)
         if angle == 0:
-            draw_lidar()
+            #draw_lidar()
             distances = [0] * 360
         for x in range(4):
             if reflectivity[x] > min_reflectivity:
@@ -73,6 +63,7 @@ def process_lidar_data():
         print ("Invalid data", checksum1, checksum2, angle)
 
 # Connect to LDS-006 RX/TX
+print("wait")
 ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=5)
 
 # Start lidar sensor
@@ -80,6 +71,7 @@ ser.write(b'$');
 ser.write(b"startlds$");
 
 # Run lidar loop
+print("start")
 while True:
     b = ser.read()
     val = int.from_bytes(b,byteorder='big')
