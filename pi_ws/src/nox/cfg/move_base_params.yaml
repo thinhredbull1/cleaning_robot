@@ -15,11 +15,11 @@ clearing_rotation_allowed: true
 
 shutdown_costmaps: false
 
-oscillation_timeout: 20.0
+oscillation_timeout: 30.0
 
 oscillation_distance: 0.3
 
-planner_frequency: 1.0 #0.0
+planner_frequency: 0.5 #0.0
 
 max_planning_retries: -1.0
 
