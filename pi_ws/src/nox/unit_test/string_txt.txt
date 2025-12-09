@@ -1,0 +1,10 @@
+rostopic pub 
+L_ON
+L_OFF
+R_ON
+R_OFF
+B_ON #coi
+B_OFF
+R_ON #door
+R_OFF
+UNLOCK 12345678
