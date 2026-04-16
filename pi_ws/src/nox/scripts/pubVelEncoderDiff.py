@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import rospy
 from nav_msgs.msg import Odometry
 import tf
@@ -22,7 +20,7 @@ class MecanumRobot:
     def __init__(self):
         rospy.init_node('mecanum_robot')
         print("INIT")
-        self.NMOTORS = 4  
+        self.NMOTORS = 2  
         self.MotorError=False
         self.total_length = 41.04
           # Adjust this value based on your robot design
@@ -31,13 +29,12 @@ class MecanumRobot:
         self.onOffMor=False
         self.M_LEFT=0
         self.M_RIGHT=1
-        self.M_RIGHT_DOWN=3
+        self.M_RIGHT_DOWN=0
         self.acc_time=10
         self.dec_time=10
-        self.M_RIGHT_UP=2
-        self.M_LEFT_DOWN=1
-        self.M_LEFT_UP=0
-        self.coeff_speed=1.0
+        self.M_RIGHT_UP=1
+        self.M_LEFT_DOWN=2
+        self.M_LEFT_UP=3
         self.moving=False
         # self.x_offset = 1.0  # Scaling factor for x
         # self.y_offset = 1.0  # Scaling factor for y
@@ -45,14 +42,14 @@ class MecanumRobot:
         self.use_imu=rospy.get_param('~use_imu',False) #cm
         print(self.use_imu)
         
-        # rospy.Subscriber('/toggle_topic',Int32, self.CylinderCB)
+        rospy.Subscriber('/toggle_topic',Int32, self.CylinderCB)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.last_pose = None
         self.last_time = rospy.Time.now()
         self.odom_pub = rospy.Publisher('/odom', Odometry, queue_size=5)
         # print("not use imu")
-        self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',9.5) #cm
-        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1798)
+        self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',13.2) #cm
+        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',850)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -73,7 +70,7 @@ class MecanumRobot:
         self.last_speed_z=0.0
         self.a_coeff=0.52188555
         self.b_coeff=0.23905722
-        self.last_encod=np.zeros(4)
+        self.last_encod=np.zeros(2)
         self.xylanh=1
         self.dtheta=0.0
         self.cmd_msg = Twist()  # Initialize a Twist message
@@ -81,7 +78,7 @@ class MecanumRobot:
         self.MotorErrorPub=rospy.Publisher('MOTOR_ERROR',Bool,queue_size=1)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.delta_encod_total1=np.zeros(4)
-        self.serial_port_name = rospy.get_param('port', '/dev/esp32')
+        self.serial_port_name = rospy.get_param('port', '/dev/ttyUSB0')
         self.baud = rospy.get_param('baud', 57600)
         # self.pub_encoder=rospy.publish
         self.serial_port = serial.Serial(self.serial_port_name,  self.baud)
@@ -107,8 +104,7 @@ class MecanumRobot:
         # self.last_time=time.time()
         self.speed_wheel_cm_s=[0,0,0,0]
         self.getCmdVel=False
-        encoder_parameter= (math.pi * self.WHEEL_DIAMETER) / self.ENCODER_TOTAL
-        self.cmPerCount= encoder_parameter# 7.05
+        self.cmPerCount=(math.pi * self.WHEEL_DIAMETER) / self.ENCODER_TOTAL # 7.05
         # rospy.sleep(1.5)
         # self.motorUp=ZLAC8015D.Controller(modbus_connection,id=1) # 0 forn
         # self.motorDown=ZLAC8015D.Controller(modbus_connection,id=2) # 1
@@ -116,7 +112,7 @@ class MecanumRobot:
         self.ms_pub_encoder=50.0
         self.rate_hz=(2000.0/self.ms_pub_encoder)
         # self.dt=1.0/self.rate_hz
-        self.ms_pid=10.0
+        self.ms_pid=20
         print(f"total:{self.total_length}")
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz
@@ -134,28 +130,25 @@ class MecanumRobot:
         elif new_delta<-10000: #last_encod=32760 --> motor quay thuan encoder_now=-32760 --> xung = +16
             new_delta=(32768+encoder_now)+(32768-last_encod)
         return new_delta
-    def CaldiffEncoder(self,motor_left, motor_right):
-        delta_encod_l=self.NormalizeOverflow(self.encoder_total[motor_left],self.last_encod[motor_left])
-        delta_encod_r=self.NormalizeOverflow(self.encoder_total[motor_right],self.last_encod[motor_right])          
-        self.last_encod[motor_left]=self.encoder_total[motor_left]
-        self.last_encod[motor_right]=self.encoder_total[motor_right]
+    def CaldiffEncoder(self,encoder_l,encoder_r):
+        delta_encod_l=self.NormalizeOverflow(encoder_l,self.last_encod[self.M_LEFT])
+        delta_encod_r=self.NormalizeOverflow(encoder_r,self.last_encod[self.M_RIGHT])          
+        self.last_encod[self.M_LEFT]=encoder_l
+        self.last_encod[self.M_RIGHT]=encoder_r
         return delta_encod_l,delta_encod_r
     def CylinderCB(self,msg):
         self.xylanh=msg.data
     def updatePos(self):
         encoderTick=[0,0]
         delta_tick=[0,0,0,0]
-        delta=[0,0]
-        delta_l_u,delta_r_u=self.CaldiffEncoder(self.M_LEFT_UP,self.M_RIGHT_UP)
-        delta_l,delta_r=delta_l_u,delta_r_u
-        encoderTick=[delta_l_u,delta_l,delta_r_u,delta_r]
+        delta=[0,0,0,0]
+        delta_l,delta_r=self.CaldiffEncoder(self.encoder_total[0],self.encoder_total[1])
+        encoderTick=[delta_l,delta_r]
         for i in range(self.NMOTORS):
-            delta_tick[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
-        delta[self.M_LEFT]= (delta_tick[self.M_LEFT_UP]+delta_tick[self.M_LEFT_DOWN])/2.0
-        delta[self.M_RIGHT]= (delta_tick[self.M_RIGHT_UP]+delta_tick[self.M_RIGHT_DOWN])/2.0
+            delta[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
         dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
         dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
-        # dtheta=self.dtheta
+        # dtheta=self.dthetae
    
         dx = math.cos(self.robot_pose[2]+(dtheta/2.0)) * dxy
         dy = math.sin(self.robot_pose[2]+(dtheta/2.0)) * dxy
@@ -203,26 +196,21 @@ class MecanumRobot:
             odom.pose.pose.orientation.y = q[1]
             odom.pose.pose.orientation.z = q[2]
             odom.pose.pose.orientation.w = q[3]
-            odom_twist_yaw=0.35
-            if(dtheta==0):
-                odom_twist_yaw=1e-4
             odom.pose.covariance = [
             0.1, 0,    0,    0,    0,    0,
             0,    0.1, 0,    0,    0,    0,
             0,    0,    1e6, 0,    0,    0,
             0,    0,    0,    1e6, 0,    0,
             0,    0,    0,    0,    1e6, 0,
-            0,    0,    0,    0,    0,   odom_twist_yaw
+            0,    0,    0,    0,    0,    0.1
             ]
-            
-          
             odom.twist.covariance = [
             0.05, 0,    0,    0,    0,    0,
             0,    0.05, 0,    0,    0,    0,
             0,    0,    1e6, 0,    0,    0,
             0,    0,    0,    1e6, 0,    0,
             0,    0,    0,    0,    1e6, 0,
-            0,    0,    0,    0,    0,    odom_twist_yaw
+            0,    0,    0,    0,    0,    0.1
             ]
             # odom.pose.covariance = ODOM_POSE_COVARIANCE
             # odom.twist.covariance = ODOM_TWIST_COVARIANCE
@@ -246,13 +234,13 @@ class MecanumRobot:
 
             # Publish TF
             
-            # self.tf_broadcaster.sendTransform(
-            #     (odom_x, odom_y, 0),
-            #     q,
-            #     rospy.Time.now(),
-            #     "base_link",
-            #     "odom"
-            # )
+            self.tf_broadcaster.sendTransform(
+                (odom_x, odom_y, 0),
+                q,
+                rospy.Time.now(),
+                "base_link",
+                "odom"
+            )
             # print(f"{self.theta_now}")
         self.last_time_encod=current_time
 
@@ -265,14 +253,10 @@ class MecanumRobot:
         ## 5 hz 0.2s 
         ## vx w --> speed dong co
         speed_cm_s = np.zeros(self.NMOTORS)
-
-        left = (vx*self.coeff_speed - dtheta * self.total_length/2.0)
-        right = (vx*self.coeff_speed + dtheta * self.total_length/2.0)
-        speed_cm_s[self.M_LEFT_UP] = left
-        speed_cm_s[self.M_LEFT_DOWN] = left
-        speed_cm_s[self.M_RIGHT_UP] = right
-        speed_cm_s[self.M_RIGHT_DOWN] = right
-        
+        coeff=1.3
+        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta * self.total_length/2.0)
+        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta * self.total_length/2.0)
+        #
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
@@ -281,17 +265,15 @@ class MecanumRobot:
         print(self.speed_desired)
     def runRobot(self):
         speed_wheel=[0,0,0,0]
-        max_speed=30
-        scale_factor=0.71
         for i in range(self.NMOTORS):
             # if(i in self.inverseDir):
             #     self.speed_desired[i]=-self.speed_desired[i]
-            speed_wheel[i]=int(self.speed_desired[i]*scale_factor)
-            if(speed_wheel[i]>max_speed):
-                speed_wheel[i]=max_speed
-            elif speed_wheel[i]<-max_speed:
-                speed_wheel[i]=-max_speed
-        serial_data = "{}/{};".format(speed_wheel[self.M_LEFT_UP],speed_wheel[self.M_RIGHT_UP])
+            speed_wheel[i]=int(self.speed_desired[i])
+            if(speed_wheel[i]>60):
+                speed_wheel[i]=60
+            elif speed_wheel[i]<-60:
+                speed_wheel[i]=-60
+        serial_data = "{}/{};".format(speed_wheel[self.M_LEFT], speed_wheel[self.M_RIGHT])
         self.moving=True
         # Gửi dữ liệu xuống serial
         # print(serial_data)
@@ -319,7 +301,6 @@ class MecanumRobot:
         print("Wheel: "+str(self.WHEEL_DIAMETER))
         print("x_offset:"+str(self.x_offset))
         print("cm_per_count:"+str(self.cmPerCount))
-        first_rec=0
         while not rospy.is_shutdown():
             try:
                 if self.serial_port.in_waiting > 0:
@@ -327,34 +308,13 @@ class MecanumRobot:
                     data_line = self.serial_port.readline().decode('utf-8').strip()
                     # Giả sử định dạng dữ liệu từ STM32: "x/y&z*w\r\n"
                     # parts = data_line.split('/')
-                    parts = data_line.replace(";", "")
+                    parts = data_line.split('/')
+                    if len(parts) == 2:
+                        self.encoder_total[0] = int(parts[0])  # left encoder
+                        self.encoder_total[1] = int(parts[1])  # right encoder
 
-                    # Tách lần lượt trái và phải
-                    # Trái: L_up / L_down
-                    # Phải: R_up * R_down
-                    left_right = parts.split("&")
-                    if len(left_right) == 2:
-
-                        left_ = left_right[0].split("/")      # [L_up, L_down]
-                        right_ = left_right[1].split("*")     # [R_up, R_down]
-                        # self.encoder_total[0] = int(parts[0])
-                        # self.encoder_total[1] = int(parts[1])
-                        if len(left_) == 2 and len(right_) == 2:
-                            
-                            self.encoder_total[0] = int(left_[0])     # L_up
-                            self.encoder_total[1] = int(left_[1])     # L_down
-                            self.encoder_total[2] = int(right_[0])    # R_up
-                            self.encoder_total[3] = int(right_[1])    # R_down
-                            if not first_rec:
-                                for i in range(0,self.NMOTORS):
-                                    self.last_encod[i]=self.encoder_total[i]
-                                    if(self.encoder_total[i]!=0):
-                                        first_rec=1
-                            else:
-                                
-                        # self.dtheta=float(parts[2])/100.0
-                                self.updatePos()
-                            # rospy.loginfo(f"Encoders: {self.encoder_total}")
+                        self.updatePos()
+                        # rospy.loginfo(f"Encoders: {self.encoder_total}")
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()
