@@ -8,18 +8,18 @@ double robot_width = 1;
 // right ~ 85 count/ vong
 // left ~ 720
 
-volatile int speed_desired[] = {0, 0, 0, 0};
+volatile int speed_desired[] = {0, 0};
 volatile int encoder_count[NMOTORS];
 long publish_encoder[NMOTORS];
 float last_encoder[NMOTORS];
 unsigned long publish_time = 0;
-volatile int pos[NMOTORS] = {0, 0, 0, 0};
+volatile int pos[NMOTORS] = {0, 0};
 SimplePID pid[NMOTORS];
 int encod_state[NMOTORS];
 robot_pos robotGlobalPos;
 void control_motor(int motor, int speed)
 {
-  if (motor == M_L_UP)
+  if (motor == RIGHT)
     speed = -speed;
   bool direct = speed > 0 ? 1 : 0;
   speed = constrain(speed, -255, 255);
@@ -42,73 +42,40 @@ void control_motor(int motor, int speed)
     digitalWrite(dir[motor], 0);
   }
 }
-void IRAM_ATTR encoderLeftMotor2()
-{
-  static bool old_a = false;
-  bool newA = digitalRead(enca[M_L_DOWN]);
-  bool newB = digitalRead(encb[M_L_DOWN]);
-  int delta = 0;
-  if (newA && !old_a)
-  {
-    delta = newB > 0 ? dir_encod[M_L_DOWN] : -dir_encod[M_L_DOWN];
-  } // rising
-  else
-  {
-    delta = newB > 0 ? -dir_encod[M_L_DOWN] : dir_encod[M_L_DOWN];
-  }
-  encoder_count[M_L_DOWN] -= delta;
-  old_a = newA;
-}
-void IRAM_ATTR encoderRightMotor2()
-{
-  static bool old_a = false;
-  bool newA = digitalRead(enca[M_R_DOWN]);
-  bool newB = digitalRead(encb[M_R_DOWN]);
-  int delta = 0;
-  if (newA && !old_a)
-  {
-    delta = newB > 0 ? dir_encod[M_R_DOWN] : -dir_encod[M_R_DOWN];
-  } // rising
-  else
-  {
-    delta = newB > 0 ? -dir_encod[M_R_DOWN] : dir_encod[M_R_DOWN];
-  }
-  encoder_count[M_R_DOWN] -= delta;
-  old_a = newA;
-}
+
 void IRAM_ATTR encoderLeftMotor()
 {
   static bool old_a = false;
-  bool newA = digitalRead(enca[M_L_UP]);
-  bool newB = digitalRead(encb[M_L_UP]);
+  bool newA = digitalRead(enca[LEFT]);
+  bool newB = digitalRead(encb[LEFT]);
   int delta = 0;
 
   if (newA && !old_a)
   {
-    delta = newB > 0 ? dir_encod[M_L_UP] : -dir_encod[M_L_UP];
+    delta = newB > 0 ? dir_encod[LEFT] : -dir_encod[LEFT];
   } // rising
   else
   {
-    delta = newB > 0 ? -dir_encod[M_L_UP] : dir_encod[M_L_UP];
+    delta = newB > 0 ? -dir_encod[LEFT] : dir_encod[LEFT];
   }
-  encoder_count[M_L_UP] -= delta;
+  encoder_count[LEFT] -= delta;
   old_a = newA;
 }
 void IRAM_ATTR encoderRightMotor()
 {
   static bool old_a = false;
-  bool newA = digitalRead(enca[M_R_UP]);
-  bool newB = digitalRead(encb[M_R_UP]);
+  bool newA = digitalRead(enca[RIGHT]);
+  bool newB = digitalRead(encb[RIGHT]);
   int delta = 0;
   if (newA && !old_a)
   {
-    delta = newB > 0 ? dir_encod[M_R_UP] : -dir_encod[M_R_UP];
+    delta = newB > 0 ? dir_encod[RIGHT] : -dir_encod[RIGHT];
   } // rising
   else
   {
-    delta = newB > 0 ? -dir_encod[M_R_UP] : dir_encod[M_R_UP];
+    delta = newB > 0 ? -dir_encod[RIGHT] : dir_encod[RIGHT];
   }
-  encoder_count[M_R_UP] -= delta;
+  encoder_count[RIGHT] -= delta;
   old_a = newA;
 }
 // 15/15; --> speed_desired()
@@ -130,10 +97,8 @@ bool receive_uart()
       // speed_linear = c.substring(0, index_now).toFloat();
       // angular_speed = (c.substring(index_now + 1).toFloat());
 
-      speed_desired[M_L_UP] = c.substring(0, index_now).toInt();
-      speed_desired[M_R_UP] = c.substring(index_now + 1).toInt();
-      speed_desired[M_R_DOWN] = speed_desired[M_R_UP];
-      speed_desired[M_L_DOWN] = speed_desired[M_L_UP];
+      speed_desired[LEFT] = c.substring(0, index_now).toInt();
+      speed_desired[RIGHT] = c.substring(index_now + 1).toInt();
       // int left_sp = c.substring(0, index_now).toInt();
       // int right_sp = c.substring(index_now + 1).toInt();
       // control_motor(0, left_sp);
@@ -217,9 +182,9 @@ void control_speed()
     {
       static uint16_t count_print = 0;
       count_print += 1;
-      Serial.print(delta_encoder[M_L_UP]);
+      Serial.print(delta_encoder[LEFT]);
       Serial.print(",");
-      Serial.println(delta_encoder[M_R_UP]);
+      Serial.println(delta_encoder[RIGHT]);
       for (int i = 0; i < NMOTORS; i++)
       {
         control_motor(i, m_pwm[i]);
@@ -244,7 +209,7 @@ void control_speed()
 void send_odom()
 {
 
-  String odom_data = String(publish_encoder[M_L_UP]) + "/" + String(publish_encoder[M_L_DOWN]) + "&" + String(publish_encoder[M_R_UP]) + "*" + String(publish_encoder[M_R_DOWN]) + ";";
+  String odom_data = String(publish_encoder[LEFT]) + "/" + String(publish_encoder[RIGHT]) + ";";
   Serial.println(odom_data);
   // for(int i=0;i<NMOTORS;i++){
   //   publish_encoder[i]=0;
@@ -262,20 +227,16 @@ void setup()
     pid[k].setParams(p_gain_default, i_gain_default, d_gain_default, 255);
     // pinMode(dir2[k], OUTPUT);
   }
-  dir_encod[M_L_UP] = dir_M_L_UP;
-  dir_encod[M_L_DOWN] = dir_M_L_DOWN;
-  dir_encod[M_R_UP] = dir_M_R_UP;
-  dir_encod[M_R_DOWN] = dir_M_R_DOWN;
+  dir_encod[LEFT] = dir_M_L_UP;
+  dir_encod[RIGHT] = dir_M_R_UP;
   for (int i = 0; i < 2; i++)
   {
     control_motor(i, 0);
   }
 
 
-  attachInterrupt(digitalPinToInterrupt(enca[M_L_UP]), encoderLeftMotor, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(enca[M_R_UP]), encoderRightMotor, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(enca[M_L_DOWN]), encoderLeftMotor2, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(enca[M_R_DOWN]), encoderRightMotor2, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(enca[LEFT]), encoderLeftMotor, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(enca[RIGHT]), encoderRightMotor, CHANGE);
   publish_time = micros();
 }
 void loop()

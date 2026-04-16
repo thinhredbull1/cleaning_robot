@@ -147,7 +147,7 @@ class MecanumRobot:
         delta_tick=[0,0,0,0]
         delta=[0,0]
         delta_l_u,delta_r_u=self.CaldiffEncoder(self.M_LEFT_UP,self.M_RIGHT_UP)
-        delta_l,delta_r=self.CaldiffEncoder(self.M_LEFT_DOWN,self.M_RIGHT_DOWN)
+        delta_l,delta_r=delta_l_u,delta_r_u
         encoderTick=[delta_l_u,delta_l,delta_r_u,delta_r]
         for i in range(self.NMOTORS):
             delta_tick[i] =  encoderTick[i] *self.cmPerCount  # 0.14260

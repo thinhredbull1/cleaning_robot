@@ -50,7 +50,7 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
     previousMillis = currentMillis;
   }
 }
-#define NMOTORS 4
+#define NMOTORS 2
 #define LEFT 0
 #define RIGHT 1
 #define M_L_UP 0
@@ -100,15 +100,15 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {25,27,13,5};
-const int encb[]= {33,26,14,15}; 
-const int pwm[] = { 4,17,19,22 };  //{10,11}
-const int dir[] = { 16,18 ,21,23};
+const int enca[] = {25,27};
+const int encb[]= {33,26}; 
+const int pwm[] = { 4,17};  //{10,11}
+const int dir[] = { 16,18};
 const int dir_M_L_UP=1;
 const int dir_M_L_DOWN=1;
 const int dir_M_R_UP=-1;
 const int dir_M_R_DOWN=-1;
-int dir_encod[]={1,1,1,1};
+int dir_encod[]={1,1};
 float p_gain_default=15.15;
 float i_gain_default=1.05;
 float d_gain_default=1.0;
