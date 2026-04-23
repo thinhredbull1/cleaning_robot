@@ -123,11 +123,11 @@ bool receive_uart()
           pid[i].setParams(new_kp,new_ki,new_kd,255);
         }
 
-        Serial.print(pid[M_R_UP].GetKp());
+        Serial.print(pid[M_L_UP].GetKp());
         Serial.print(" ");
-        Serial.print(pid[M_R_UP].GetKi());
+        Serial.print(pid[M_L_UP].GetKi());
         Serial.print(" ");
-        Serial.println(pid[M_R_UP].GetKd());
+        Serial.println(pid[M_L_UP].GetKd());
       }
     }
   }
@@ -135,7 +135,7 @@ bool receive_uart()
 }
 void control_speed()
 {
-  int delta_encoder[NMOTORS] = {0, 0, 0, 0};
+  int delta_encoder[NMOTORS] = {0, 0};
   /// lay so xung encoder
 
   // cli();
@@ -146,7 +146,7 @@ void control_speed()
   }
   // sei();
   ////tinh van toc
-  int m_pwm[NMOTORS] = {0, 0, 0, 0};
+  int m_pwm[NMOTORS] = {0, 0};
   float speed_filter[NMOTORS];
 
   for (int i = 0; i < NMOTORS; i++)
@@ -196,8 +196,6 @@ void control_speed()
         count_print = 0;
         speed_desired[0] = 0;
         speed_desired[1] = 0;
-        speed_desired[2] = 0;
-        speed_desired[3] = 0;
         start_run_motor = 0;
         for (int i = 0; i < NMOTORS; i++)
           control_motor(i, 0);

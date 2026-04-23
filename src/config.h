@@ -51,8 +51,8 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
   }
 }
 #define NMOTORS 2
-#define LEFT 0
-#define RIGHT 1
+#define LEFT 1
+#define RIGHT 0
 #define M_L_UP 0
 #define M_L_DOWN 1 
 #define M_R_UP 2
@@ -100,18 +100,18 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {25,27};
-const int encb[]= {33,26}; 
-const int pwm[] = { 4,17};  //{10,11}
-const int dir[] = { 16,18};
-const int dir_M_L_UP=1;
+const int enca[] = {25,12};
+const int encb[]= {33,13}; 
+const int pwm[] = {26, 14};  //{10,11}
+const int dir[] = {27, 15};
+const int dir_M_L_UP=-1;
 const int dir_M_L_DOWN=1;
-const int dir_M_R_UP=-1;
+const int dir_M_R_UP=1;
 const int dir_M_R_DOWN=-1;
-int dir_encod[]={1,1};
-float p_gain_default=15.15;
-float i_gain_default=1.05;
-float d_gain_default=1.0;
+int dir_encod[]={-1,-1};
+float p_gain_default=20.15;
+float i_gain_default=1.95;
+float d_gain_default=2.0;
 const int dir_encod_M1=1;
 const int dir_encod_M0=-1; 
 const float LOOP_FREQUENCY=100.0; // hz
