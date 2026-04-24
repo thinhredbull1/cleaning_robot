@@ -9,12 +9,9 @@
     <param name="frame_id"     type="string" value="laser"/>
      <param name="rate"     type="int" value="100"/>
   </node> -->
-  <rosparam command="load" file="$(find nox)/cfg/ekf_params.yaml" />
   <node name="pubVel" pkg="nox" type="cmd_vel_fake.py"/>
   <!-- <node name="fakeOdom" pkg="nox" type="fake_odom.py"/> -->
   <node name="OdomReal" pkg="nox" type="pubVelEncoderDiff.py"/>
-   <node name="imu" pkg="imu" type="imu.py"/>
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se_odom" clear_params="true">
     <!--  Placeholder for output topic remapping
     <remap from="odometry/filtered" to=""/>
     <remap from="accel/filtered" to=""/>
