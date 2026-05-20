@@ -208,6 +208,7 @@ void send_odom()
 {
 
   String odom_data = String(publish_encoder[LEFT]) + "/" + String(publish_encoder[RIGHT]) + ";";
+  // String odom_data = String(last_encoder[LEFT]) + "/" + String(last_encoder[RIGHT]) + ";";
   Serial.println(odom_data);
   // for(int i=0;i<NMOTORS;i++){
   //   publish_encoder[i]=0;

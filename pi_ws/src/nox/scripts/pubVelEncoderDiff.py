@@ -22,7 +22,7 @@ class MecanumRobot:
         print("INIT")
         self.NMOTORS = 2  
         self.MotorError=False
-        self.total_length = 41.04
+        self.total_length = 31.6447
           # Adjust this value based on your robot design
         #length=41.5/2=20.75
         #width =34.3/2=17.15
@@ -49,7 +49,7 @@ class MecanumRobot:
         self.odom_pub = rospy.Publisher('/odom', Odometry, queue_size=5)
         # print("not use imu")
         self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',13.2) #cm
-        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',850)
+        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',2485)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -95,7 +95,7 @@ class MecanumRobot:
         self.vy_now=0
         self.theta_now=0
         self.last_msg=1
-       
+        self.first_odom=False
         self.vx_run=0
         self.vy_run=0
         self.w_run=0
@@ -112,7 +112,7 @@ class MecanumRobot:
         self.ms_pub_encoder=50.0
         self.rate_hz=(2000.0/self.ms_pub_encoder)
         # self.dt=1.0/self.rate_hz
-        self.ms_pid=20
+        self.ms_pid=10
         print(f"total:{self.total_length}")
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz
@@ -142,12 +142,17 @@ class MecanumRobot:
         encoderTick=[0,0]
         delta_tick=[0,0,0,0]
         delta=[0,0,0,0]
+        if self.first_odom==False:
+            self.first_odom=True
+            self.CaldiffEncoder(self.encoder_total[0],self.encoder_total[1])
+            return
         delta_l,delta_r=self.CaldiffEncoder(self.encoder_total[0],self.encoder_total[1])
+        # print(f"l:{delta_l} r:{delta_r}")
         encoderTick=[delta_l,delta_r]
         for i in range(self.NMOTORS):
             delta[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
         dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
-        dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
+        dtheta = -((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
         # dtheta=self.dthetae
    
         dx = math.cos(self.robot_pose[2]+(dtheta/2.0)) * dxy
@@ -169,7 +174,7 @@ class MecanumRobot:
             # dtheta=dtheta
             self.vx_now=dxy/dt
             self.vy_now=0
-            self.theta_now=dtheta/dt
+            self.theta_now=-dtheta/dt
 
             self.robot_pose[0] +=dx 
             self.robot_pose[1] += dy 
@@ -253,15 +258,16 @@ class MecanumRobot:
         ## 5 hz 0.2s 
         ## vx w --> speed dong co
         speed_cm_s = np.zeros(self.NMOTORS)
-        coeff=1.3
-        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta * self.total_length/2.0)
-        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta * self.total_length/2.0)
+        coeff=1.06
+        coeff_turn=1.37
+        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta * (self.total_length/2.0)*coeff_turn)
+        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta * (self.total_length/2.0)*coeff_turn)
         #
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
-            self.speed_desired[i] = speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount))
-            self.speed_desired[i]=int(speed_cm_s[i])
+            self.speed_desired[i] = (speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount)))
+            self.speed_desired[i]=int(self.speed_desired[i])
         print(self.speed_desired)
     def runRobot(self):
         speed_wheel=[0,0,0,0]
@@ -306,6 +312,8 @@ class MecanumRobot:
                 if self.serial_port.in_waiting > 0:
                     # Đọc một dòng dữ liệu từ STM32
                     data_line = self.serial_port.readline().decode('utf-8').strip()
+                    data_line = data_line.rstrip(';')
+
                     # Giả sử định dạng dữ liệu từ STM32: "x/y&z*w\r\n"
                     # parts = data_line.split('/')
                     parts = data_line.split('/')
@@ -315,6 +323,7 @@ class MecanumRobot:
 
                         self.updatePos()
                         # rospy.loginfo(f"Encoders: {self.encoder_total}")
+
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()
