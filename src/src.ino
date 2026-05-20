@@ -1,4 +1,8 @@
 #include "config.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 // #include <util/atomic.h>
 // #include "digitalWriteFast.h"
 double m_per_count_l = 0;
@@ -7,7 +11,9 @@ double robot_width = 1;
 
 // right ~ 85 count/ vong
 // left ~ 720
-
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+Adafruit_MPU6050 mpu;
+sensors_event_t a, g, temp;
 volatile int speed_desired[] = {0, 0};
 volatile int encoder_count[NMOTORS];
 long publish_encoder[NMOTORS];
@@ -17,6 +23,9 @@ volatile int pos[NMOTORS] = {0, 0};
 SimplePID pid[NMOTORS];
 int encod_state[NMOTORS];
 robot_pos robotGlobalPos;
+/// @brief
+/// @param motor
+/// @param speed
 void control_motor(int motor, int speed)
 {
   if (motor == RIGHT)
@@ -42,7 +51,145 @@ void control_motor(int motor, int speed)
     digitalWrite(dir[motor], 0);
   }
 }
+/// @brief  Display:
+void lcd_print(String line1, String line2)
+{
+  lcd.clear();
 
+  lcd.setCursor(0, 0);
+  lcd.print(line1);
+
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
+}
+/// @return
+/// @brief Sensor read
+void calibIMU()
+{
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  lcd_print("Calib IMU", "Do not move");
+
+  Serial.println("Calib gyro...");
+
+  const int num_samples = 2000;
+
+  float gx = 0;
+  float gy = 0;
+  float gz = 0;
+
+  for (int i = 0; i < num_samples; i++)
+  {
+    mpu.getEvent(&a, &g, &temp);
+
+    gx += g.gyro.x;
+    gy += g.gyro.y;
+    gz += g.gyro.z;
+
+    delay(2);
+  }
+
+  gyro_offset_x = gx / num_samples;
+  gyro_offset_y = gy / num_samples;
+  gyro_offset_z = gz / num_samples;
+
+  Serial.println("Done calib");
+
+  lcd_print("IMU Ready", "");
+}
+void readIMU()
+{
+  mpu.getEvent(&a, &g, &temp);
+
+  gyro_x = g.gyro.x - gyro_offset_x;
+  gyro_y = g.gyro.y - gyro_offset_y; // rad/s
+  gyro_z = g.gyro.z - gyro_offset_z;
+}
+float readUltrasonic()
+{
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(TRIG, LOW);
+
+  long duration = pulseIn(ECHO, HIGH, 30000);
+
+  float distance = duration * 0.034 / 2.0;
+
+  return distance;
+}
+bool readIR()
+{
+  return digitalRead(IR);
+}
+bool readButton1()
+{
+  return digitalRead(BT1);
+}
+
+bool readButton2()
+{
+  return digitalRead(BT2);
+}
+void setupSensor()
+{
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  pinMode(IR, INPUT);
+
+  pinMode(BT1, INPUT_PULLUP);
+  pinMode(BT2, INPUT_PULLUP);
+
+  pinMode(LED1, OUTPUT);
+  Wire.begin();
+  Wire.setClock(400000);
+  lcd.init();
+  lcd.backlight();
+
+  lcd_print("Robot Init", "");
+  if (!mpu.begin())
+  {
+    lcd_print("MPU6050 fail");
+    while (1);
+  }
+
+  calibIMU();
+}
+/// @param
+
+
+
+/// @brief  send serial
+void send_sensor()
+{
+  ///  encL/encR/gz/us/ir/b1/b2;
+  unsigned long time_delay=millis();
+  readIMU();
+
+  float distance = readUltrasonic();
+
+  int ir_state = digitalRead(IR);
+
+  int bt1 = digitalRead(BT1);
+  int bt2 = digitalRead(BT2);
+
+  String sensor_data =
+      String(publish_encoder[LEFT]) + "/" + 
+      String(publish_encoder[RIGHT]) + "/" +
+      String(gyro_z, 4) + "/" +
+      String(distance, 1) + "/" +
+      String(ir_state) + "/" +
+      String(bt1) + "/" +
+      String(bt2) + ";";
+
+  Serial.println(sensor_data);
+  // Serial.println("delay: "+String(millis()-time_delay));
+}
+/// @return 
 void IRAM_ATTR encoderLeftMotor()
 {
   static bool old_a = false;
@@ -119,8 +266,9 @@ bool receive_uart()
         float new_ki = c.substring(index_kp_desired + 1, index_cal).toFloat();
         float new_kd = c.substring(index_cal + 1).toFloat();
 
-        for(int i=0;i<NMOTORS;i++){
-          pid[i].setParams(new_kp,new_ki,new_kd,255);
+        for (int i = 0; i < NMOTORS; i++)
+        {
+          pid[i].setParams(new_kp, new_ki, new_kd, 255);
         }
 
         Serial.print(pid[M_L_UP].GetKp());
@@ -231,8 +379,7 @@ void setup()
   {
     control_motor(i, 0);
   }
-
-
+  setupSensor();
   attachInterrupt(digitalPinToInterrupt(enca[LEFT]), encoderLeftMotor, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[RIGHT]), encoderRightMotor, CHANGE);
   publish_time = micros();
@@ -278,5 +425,5 @@ void loop()
   //   time_loop_pid = millis();
   // }
   callFunctionPeriodically(control_speed, LOOP_MS, time_loop_pid); // tinh pid van toc va encoder
-  callFunctionPeriodically(send_odom, LOOP_PUB, time_publish);     // gui len pi neu dung ros serial
+  callFunctionPeriodically(send_sensor, LOOP_PUB, time_publish);     // gui len pi neu dung ros serial
 }

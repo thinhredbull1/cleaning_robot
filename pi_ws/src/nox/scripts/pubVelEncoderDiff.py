@@ -14,6 +14,7 @@ import time
 import rospkg
 from std_msgs.msg import Bool,Int32,Float32
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Imu
 import serial
 
 class MecanumRobot:
@@ -36,6 +37,21 @@ class MecanumRobot:
         self.M_LEFT_DOWN=2
         self.M_LEFT_UP=3
         self.moving=False
+
+
+        #### sensor
+        self.gyro_z = 0.0
+        self.ultrasonic = 0.0
+
+        self.ir_state = 0
+
+        self.button1 = 0
+        self.button2 = 0
+
+
+
+
+        ###
         # self.x_offset = 1.0  # Scaling factor for x
         # self.y_offset = 1.0  # Scaling factor for y
         # self.theta_offset = 1.0  # Scaling factor for theta
@@ -84,8 +100,14 @@ class MecanumRobot:
         self.serial_port = serial.Serial(self.serial_port_name,  self.baud)
         # modbus_connection = ZLAC8015D.ModbusConnection(port="/dev/ttyUSB0")
         # rospy.sleep(1.5)
+        ### publisher
         self.desired = rospy.Publisher('/speed_desired', Float32, queue_size=1)
         self.feedback = rospy.Publisher('/speed_feedback', Float32, queue_size=1)
+        self.imu_pub = rospy.Publisher(
+            "/imu/data",
+            Imu,
+            queue_size=10
+        )
         self.last_time_encod=rospy.Time.now()
         self.inverseDir=[]
         self.teleop=False
@@ -99,7 +121,7 @@ class MecanumRobot:
         self.vx_run=0
         self.vy_run=0
         self.w_run=0
-     
+        #####
         # self.motors=[self.motorUp,self.motorDown]
         # self.last_time=time.time()
         self.speed_wheel_cm_s=[0,0,0,0]
@@ -117,6 +139,29 @@ class MecanumRobot:
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz
         rospy.Subscriber("/cmd_vel_timeout", Twist, self.cmdVelCb)  # Change to Twist message
+    def publish_imu(self):
+        imu_msg = Imu()
+
+        imu_msg.header.stamp = rospy.Time.now()
+        imu_msg.header.frame_id = "imu_link"
+
+        # ===== GYRO ONLY =====
+        imu_msg.angular_velocity.z = self.gyro_z
+
+        # covariance
+        imu_msg.angular_velocity_covariance = [
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.02
+        ]
+
+        # disable orientation
+        imu_msg.orientation_covariance[0] = -1
+
+        # disable accel
+        imu_msg.linear_acceleration_covariance[0] = -1
+
+        self.imu_pub.publish(imu_msg)
     def cmdVelCb(self,msg):
         self.getCmdVel=True
         self.vx_run=msg.linear.x*100
@@ -305,15 +350,47 @@ class MecanumRobot:
             try:
                 if self.serial_port.in_waiting > 0:
                     # Đọc một dòng dữ liệu từ STM32
-                    data_line = self.serial_port.readline().decode('utf-8').strip()
-                    # Giả sử định dạng dữ liệu từ STM32: "x/y&z*w\r\n"
-                    # parts = data_line.split('/')
-                    parts = data_line.split('/')
-                    if len(parts) == 2:
-                        self.encoder_total[0] = int(parts[0])  # left encoder
-                        self.encoder_total[1] = int(parts[1])  # right encoder
+                    data_line = self.serial_port.readline().decode(
+                    'utf-8',
+                    errors='ignore'
+                    ).strip()
 
+                # remove ';'
+                    data_line = data_line.replace(';', '')
+
+                    parts = data_line.split('/')
+
+                    # encL/encR/gz/us/ir/b1/b2
+                    if len(parts) == 7:
+
+                        # ===== ENCODER =====
+                        self.encoder_total[0] = int(parts[0])
+                        self.encoder_total[1] = int(parts[1])
+
+                        # ===== GYRO =====
+                        self.gyro_z = float(parts[2])   # rad/s
+
+                        # ===== ULTRASONIC =====
+                        self.ultrasonic = float(parts[3])   # cm
+
+                        # ===== IR =====
+                        self.ir_state = int(parts[4])
+
+                        # ===== BUTTON =====
+                        self.button1 = int(parts[5])
+                        self.button2 = int(parts[6])
+
+                        # ===== UPDATE ODOM =====
                         self.updatePos()
+
+                        # ===== DEBUG =====
+                        rospy.loginfo(
+                            f"L:{self.encoder_total[0]} "
+                            f"R:{self.encoder_total[1]} "
+                            f"GZ:{self.gyro_z:.4f} "
+                            f"US:{self.ultrasonic:.1f} "
+                            f"IR:{self.ir_state}"
+                )
                         # rospy.loginfo(f"Encoders: {self.encoder_total}")
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")

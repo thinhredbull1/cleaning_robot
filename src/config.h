@@ -84,26 +84,30 @@ typedef struct robot_coord{
   double y;
   double theta;
 }robot_pos;
-#define ros_serial 1
+#define ros_serial 0
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
 
-#define SV 23
-#define ESC 28
-#define BRU_1 13
-#define BRU_2 15
+#define TRIG 4
+#define ECHO 15
+#define BT1 36
+#define BT2 39
+#define LED1 2
+#define IR 32
+/// @brief / IMU sensor:
+float gyro_offset_x = 0;
+float gyro_offset_y = 0;
+float gyro_offset_z = 0;
+float gyro_x;
+float gyro_y;
+float gyro_z;
 
-#define BRD_1 5
-#define BRD_2 17
-
-#define IR_R 34
-#define IR_L 39
-#define IR_U 36
+/// @brief /
 const bool test_ff=0;
-const int enca[] = {25,12};
-const int encb[]= {33,13}; 
+const int enca[] = {18,19};
+const int encb[]= {5,23}; 
 const int pwm[] = {26, 14};  //{10,11}
-const int dir[] = {27, 15};
+const int dir[] = {27, 12};
 const int dir_M_L_UP=-1;
 const int dir_M_L_DOWN=1;
 const int dir_M_R_UP=1;
