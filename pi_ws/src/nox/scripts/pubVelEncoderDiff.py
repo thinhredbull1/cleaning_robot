@@ -23,7 +23,7 @@ class MecanumRobot:
         print("INIT")
         self.NMOTORS = 2  
         self.MotorError=False
-        self.total_length = 41.04
+        self.total_length = 21.664
           # Adjust this value based on your robot design
         #length=41.5/2=20.75
         #width =34.3/2=17.15
@@ -65,7 +65,7 @@ class MecanumRobot:
         self.odom_pub = rospy.Publisher('/odom', Odometry, queue_size=5)
         # print("not use imu")
         self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',13.2) #cm
-        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',850)
+        self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1990)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -117,7 +117,7 @@ class MecanumRobot:
         self.vy_now=0
         self.theta_now=0
         self.last_msg=1
-       
+    
         self.vx_run=0
         self.vy_run=0
         self.w_run=0
@@ -134,7 +134,7 @@ class MecanumRobot:
         self.ms_pub_encoder=50.0
         self.rate_hz=(2000.0/self.ms_pub_encoder)
         # self.dt=1.0/self.rate_hz
-        self.ms_pid=20
+        self.ms_pid=10.0
         print(f"total:{self.total_length}")
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz
@@ -212,7 +212,7 @@ class MecanumRobot:
         if dt>0:
             # dt=dt
             # dtheta=dtheta
-            self.vx_now=dxy/dt
+            self.vx_now=dx/dt
             self.vy_now=0
             self.theta_now=dtheta/dt
 
@@ -298,15 +298,15 @@ class MecanumRobot:
         ## 5 hz 0.2s 
         ## vx w --> speed dong co
         speed_cm_s = np.zeros(self.NMOTORS)
-        coeff=1.3
-        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta * self.total_length/2.0)
-        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta * self.total_length/2.0)
+        coeff=1.1
+        coeff_turn=1.4
+        speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta*coeff_turn * self.total_length/2.0)
+        speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta*coeff_turn * self.total_length/2.0)
         #
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
             # self.speed_desired[i] = speed_cm_s[i]*1.5 # to pulse / 10ms
-            self.speed_desired[i] = speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount))
-            self.speed_desired[i]=int(speed_cm_s[i])
+            self.speed_desired[i] = (speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount)))
         print(self.speed_desired)
     def runRobot(self):
         speed_wheel=[0,0,0,0]
@@ -340,7 +340,7 @@ class MecanumRobot:
         t3=time.time()
         send_cmd_cylen=True
         # rospy.spin()
-        
+        self.first_msg=True
         print("Encoder:"+str(self.ENCODER_TOTAL))
         print("Mode: "+str(self.test_mode))
         print("Wheel: "+str(self.WHEEL_DIAMETER))
@@ -379,18 +379,23 @@ class MecanumRobot:
                         # ===== BUTTON =====
                         self.button1 = int(parts[5])
                         self.button2 = int(parts[6])
-
+                        if self.first_msg:
+                            self.last_encod[self.M_LEFT]=self.encoder_total[self.M_LEFT]
+                            self.last_encod[self.M_RIGHT]=self.encoder_total[self.M_RIGHT]
+                            self.first_msg=False
                         # ===== UPDATE ODOM =====
                         self.updatePos()
 
                         # ===== DEBUG =====
-                        rospy.loginfo(
-                            f"L:{self.encoder_total[0]} "
-                            f"R:{self.encoder_total[1]} "
-                            f"GZ:{self.gyro_z:.4f} "
-                            f"US:{self.ultrasonic:.1f} "
-                            f"IR:{self.ir_state}"
-                )
+                        # rospy.loginfo(
+                        #     f"L:{self.encoder_total[0]} "
+                        #     f"R:{self.encoder_total[1]} "
+                        #     f"GZ:{self.gyro_z:.4f} "
+                        #     f"US:{self.ultrasonic:.1f} "
+                        #     f"IR:{self.ir_state} "
+                        #     f"B1:{self.button1} "
+                        #     f"B2:{self.button2} "
+                        # )
                         # rospy.loginfo(f"Encoders: {self.encoder_total}")
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")

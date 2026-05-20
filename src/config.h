@@ -84,7 +84,7 @@ typedef struct robot_coord{
   double y;
   double theta;
 }robot_pos;
-#define ros_serial 0
+#define ros_serial 1
 // max speed 30 pulse / 100hz
 //2030 pulse 1 step
 
@@ -112,7 +112,7 @@ const int dir_M_L_UP=-1;
 const int dir_M_L_DOWN=1;
 const int dir_M_R_UP=1;
 const int dir_M_R_DOWN=-1;
-int dir_encod[]={-1,-1};
+int dir_encod[]={-1,1};
 float p_gain_default=20.15;
 float i_gain_default=1.95;
 float d_gain_default=2.0;
