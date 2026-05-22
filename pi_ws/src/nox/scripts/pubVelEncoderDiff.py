@@ -127,6 +127,7 @@ class MecanumRobot:
         # self.last_time=time.time()
         self.speed_wheel_cm_s=[0,0,0,0]
         self.getCmdVel=False
+        self.timeCmdVel=rospy.Time.now()
         self.cmPerCount=(math.pi * self.WHEEL_DIAMETER) / self.ENCODER_TOTAL # 7.05
         # rospy.sleep(1.5)
         # self.motorUp=ZLAC8015D.Controller(modbus_connection,id=1) # 0 forn
@@ -165,6 +166,7 @@ class MecanumRobot:
         self.imu_pub.publish(imu_msg)
     def cmdVelCb(self,msg):
         self.getCmdVel=True
+        self.timeCmdVel=rospy.Time.now()
         self.vx_run=msg.linear.x*100
         self.w_run=msg.angular.z
         self.calSpeed(self.vx_run,self.w_run)
@@ -345,7 +347,13 @@ class MecanumRobot:
         if self.stop_distance:
             if self.ir_state == 0:  # Assuming IR state 0 indicates no object detected
                 self.stop_distance=False
-       
+    def cmdVelTimeout(self):
+        if self.getCmdVel:
+            time_since_cmd = (rospy.Time.now() - self.timeCmdVel).to_sec()
+            if time_since_cmd > 0.4:  # Timeout after 0.5 seconds
+                self.getCmdVel=False
+                self.calSpeed(0,0)
+                self.runRobot()
     def run(self):
         count_to_stop=0
         
@@ -431,7 +439,7 @@ class MecanumRobot:
                     self.stop_obstacle=False
                 for i in range(len(self.x_stop)):
                     self.check_stop_transport(self.x_stop[i], self.y_stop[i])
-
+                self.cmdVelTimeout()
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()
