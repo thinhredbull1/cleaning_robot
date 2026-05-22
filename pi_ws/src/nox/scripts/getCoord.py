@@ -16,7 +16,6 @@ class RobotTrajectoryPlotter:
 
     def get_transform(self):
         try:
-            # Lấy transform từ map đến base_link
             (trans, rot) = self.tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))
             return trans
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):

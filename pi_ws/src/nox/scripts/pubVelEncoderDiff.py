@@ -37,16 +37,16 @@ class MecanumRobot:
         self.M_LEFT_DOWN=2
         self.M_LEFT_UP=3
         self.moving=False
-
-
+        self.stop_now=False
+        self.stop_obstacle=False
         #### sensor
         self.gyro_z = 0.0
         self.ultrasonic = 0.0
-
+        self.stop_distance = False
         self.ir_state = 0
 
-        self.button1 = 0
-        self.button2 = 0
+        self.green_button = 1
+        self.red_button= 1
 
 
 
@@ -101,6 +101,7 @@ class MecanumRobot:
         # modbus_connection = ZLAC8015D.ModbusConnection(port="/dev/ttyUSB0")
         # rospy.sleep(1.5)
         ### publisher
+        
         self.desired = rospy.Publisher('/speed_desired', Float32, queue_size=1)
         self.feedback = rospy.Publisher('/speed_feedback', Float32, queue_size=1)
         self.imu_pub = rospy.Publisher(
@@ -152,7 +153,7 @@ class MecanumRobot:
         imu_msg.angular_velocity_covariance = [
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0,
-            0.0, 0.0, 0.02
+            0.0, 0.0, 0.08
         ]
 
         # disable orientation
@@ -167,7 +168,12 @@ class MecanumRobot:
         self.vx_run=msg.linear.x*100
         self.w_run=msg.angular.z
         self.calSpeed(self.vx_run,self.w_run)
-        self.runRobot()
+        if self.stop_now or self.stop_obstacle or self.stop_distance:
+            print(f"OBSTACLE: {self.stop_obstacle} DISTANCE: {self.stop_distance} BUTTON: {self.stop_now}")
+            self.calSpeed(0,0)
+            self.runRobot()
+        else:
+            self.runRobot()
     def NormalizeOverflow(self,encoder_now,last_encod):
         new_delta=encoder_now-last_encod
         if new_delta>10000: # last_encod = -32760 --> motor quay nguoc encoder_now = 32760 --> quay nguoc -16 xung
@@ -327,7 +333,18 @@ class MecanumRobot:
         # self.motorUp.set_rpm(speed_wheel[self.M_RIGHT_UP],speed_wheel[self.M_LEFT_UP])
         # self.motorDown.set_rpm(speed_wheel[self.M_LEFT_DOWN],speed_wheel[self.M_RIGHT_DOWN])
 
-  
+    def check_stop_transport(self,x,y):
+        self.tolerance = 0.05
+        if self.ir_state == 1:  # Assuming IR state 1 indicates an object is detected
+            if not self.stop_distance:  # Only check distance if not already stopped
+                diff_x=self.robot_pose[0]-x
+                diff_y=self.robot_pose[1]-y
+                distance=math.sqrt(diff_x*diff_x+diff_y*diff_y)
+                if(distance<self.tolerance):
+                    self.stop_distance=True
+        if self.stop_distance:
+            if self.ir_state == 0:  # Assuming IR state 0 indicates no object detected
+                self.stop_distance=False
        
     def run(self):
         count_to_stop=0
@@ -346,6 +363,8 @@ class MecanumRobot:
         print("Wheel: "+str(self.WHEEL_DIAMETER))
         print("x_offset:"+str(self.x_offset))
         print("cm_per_count:"+str(self.cmPerCount))
+        self.x_stop=[0.5, 0.5]
+        self.y_stop=[0.5, 0.5]
         while not rospy.is_shutdown():
             try:
                 if self.serial_port.in_waiting > 0:
@@ -377,8 +396,10 @@ class MecanumRobot:
                         self.ir_state = int(parts[4])
 
                         # ===== BUTTON =====
-                        self.button1 = int(parts[5])
-                        self.button2 = int(parts[6])
+                        self.green_button = int(parts[5]) # green
+                        self.red_button= int(parts[6]) # red
+           
+
                         if self.first_msg:
                             self.last_encod[self.M_LEFT]=self.encoder_total[self.M_LEFT]
                             self.last_encod[self.M_RIGHT]=self.encoder_total[self.M_RIGHT]
@@ -393,10 +414,24 @@ class MecanumRobot:
                         #     f"GZ:{self.gyro_z:.4f} "
                         #     f"US:{self.ultrasonic:.1f} "
                         #     f"IR:{self.ir_state} "
-                        #     f"B1:{self.button1} "
+                        #     f"B1:{self.green_button} "
                         #     f"B2:{self.button2} "
                         # )
                         # rospy.loginfo(f"Encoders: {self.encoder_total}")
+
+                if self.stop_now:
+                    if self.green_button==0:
+                        self.stop_now=False
+                else:
+                    if self.red_button==0:
+                        self.stop_now=True
+                if self.ultrasonic<12.0:
+                    self.stop_obstacle=True
+                else:
+                    self.stop_obstacle=False
+                for i in range(len(self.x_stop)):
+                    self.check_stop_transport(self.x_stop[i], self.y_stop[i])
+
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()
@@ -406,7 +441,7 @@ if __name__ == '__main__':
         robot = MecanumRobot()
         robot.run()
     except rospy.ROSInterruptException:
-        robot.calSpeed(0,0,0)
+        robot.calSpeed(0,0)
         robot.runRobot()
         # robot.disableMor()
         rospy.loginfo("ROS node interrupted.")
