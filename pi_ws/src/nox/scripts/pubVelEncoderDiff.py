@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rospy
 from nav_msgs.msg import Odometry
 import tf
@@ -12,7 +13,7 @@ import sys
 import os
 import time
 import rospkg
-from std_msgs.msg import Bool,Int32,Float32
+from std_msgs.msg import Bool,Int32,Float32,String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu
 import serial
@@ -66,6 +67,8 @@ class MecanumRobot:
         # print("not use imu")
         self.WHEEL_DIAMETER=rospy.get_param('~wheel_diameter',13.2) #cm
         self.ENCODER_TOTAL=rospy.get_param('~encoder_total',1990)
+        self.sensor_pub= rospy.Publisher('/sensor', Bool, queue_size=1)
+        self.obstacle_pub= rospy.Publisher('/obstacle', Bool, queue_size=1)
         self.encoder_total=np.zeros(4)
         self.test_mode=rospy.get_param('~test_mode',0) # 0 - speed 1 - position 2 - normal
         self.start_velocity_test=rospy.get_param('~start_run', 1.0)
@@ -94,15 +97,16 @@ class MecanumRobot:
         self.MotorErrorPub=rospy.Publisher('MOTOR_ERROR',Bool,queue_size=1)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.delta_encod_total1=np.zeros(4)
-        self.serial_port_name = rospy.get_param('port', '/dev/ttyUSB0')
+        self.serial_port_name = rospy.get_param('port', '/dev/esp32')
         self.baud = rospy.get_param('baud', 57600)
         # self.pub_encoder=rospy.publish
-        self.serial_port = serial.Serial(self.serial_port_name,  self.baud)
+        self.serial_port = serial.Serial(self.serial_port_name,  self.baud,timeout=0.1)
         # modbus_connection = ZLAC8015D.ModbusConnection(port="/dev/ttyUSB0")
         # rospy.sleep(1.5)
         ### publisher
         
         self.desired = rospy.Publisher('/speed_desired', Float32, queue_size=1)
+        self.moving_pub = rospy.Publisher('/trajectory_type', String, queue_size=1)
         self.feedback = rospy.Publisher('/speed_feedback', Float32, queue_size=1)
         self.imu_pub = rospy.Publisher(
             "/imu/data",
@@ -140,7 +144,8 @@ class MecanumRobot:
         print(f"total:{self.total_length}")
         self.rpm_to_cm_s=np.zeros(2)
         self.rate = rospy.Rate(self.rate_hz)  # 10 Hz
-        rospy.Subscriber("/cmd_vel_timeout", Twist, self.cmdVelCb)  # Change to Twist message
+        rospy.Subscriber("/cmd_vel", Twist, self.cmdVelCb)  # Change to Twist message
+        rospy.Subscriber("/reset_odom", Bool, self.resetOdom) 
     def publish_imu(self):
         imu_msg = Imu()
 
@@ -191,6 +196,11 @@ class MecanumRobot:
         return delta_encod_l,delta_encod_r
     def CylinderCB(self,msg):
         self.xylanh=msg.data
+    def resetOdom(self,msg):
+        if msg.data:
+            self.robot_pose[0]=0
+            self.robot_pose[1]=0
+            self.robot_pose[2]=0
     def updatePos(self):
         encoderTick=[0,0]
         delta_tick=[0,0,0,0]
@@ -200,7 +210,7 @@ class MecanumRobot:
         for i in range(self.NMOTORS):
             delta[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
         dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
-        dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
+        dtheta = -((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
         # dtheta=self.dthetae
    
         dx = math.cos(self.robot_pose[2]+(dtheta/2.0)) * dxy
@@ -220,7 +230,7 @@ class MecanumRobot:
         if dt>0:
             # dt=dt
             # dtheta=dtheta
-            self.vx_now=dx/dt
+            self.vx_now=dxy/dt
             self.vy_now=0
             self.theta_now=dtheta/dt
 
@@ -277,8 +287,8 @@ class MecanumRobot:
             self.last_speed_x=speed_measure_x
             self.last_speed_y=speed_measure_y
             self.last_speed_z=speed_measure_z
-            odom.twist.twist.linear.x =self.speed_filter_x
-            odom.twist.twist.angular.z =-self.speed_filter_z 
+            odom.twist.twist.linear.x =self.vx_now
+            odom.twist.twist.angular.z =self.w_run 
             odom.twist.twist.linear.y =self.speed_filter_y
             # odom.twist.twist.linear.x =speed_measure_x
             # odom.twist.twist.angular.z =-speed_measure_z
@@ -306,8 +316,8 @@ class MecanumRobot:
         ## 5 hz 0.2s 
         ## vx w --> speed dong co
         speed_cm_s = np.zeros(self.NMOTORS)
-        coeff=1.1
-        coeff_turn=1.4
+        coeff=1.0
+        coeff_turn=1.0
         speed_cm_s[self.M_LEFT] = (vx*coeff - dtheta*coeff_turn * self.total_length/2.0)
         speed_cm_s[self.M_RIGHT] = (vx*coeff + dtheta*coeff_turn * self.total_length/2.0)
         #
@@ -317,11 +327,19 @@ class MecanumRobot:
             self.speed_desired[i] = (speed_cm_s[i] *((self.ms_pid/1000.0)/(self.cmPerCount)))
         print(self.speed_desired)
     def runRobot(self):
-        speed_wheel=[0,0,0,0]
+        speed_wheel=[0,0]
+        min_speed=2
         for i in range(self.NMOTORS):
             # if(i in self.inverseDir):
             #     self.speed_desired[i]=-self.speed_desired[i]
-            speed_wheel[i]=int(self.speed_desired[i])
+            speed = self.speed_desired[i]
+
+            speed_wheel[i] = 0 if speed == 0 else int(
+                math.copysign(
+                    max(min_speed, math.floor(abs(speed) + 0.5)),
+                    speed
+                )
+            )
             if(speed_wheel[i]>60):
                 speed_wheel[i]=60
             elif speed_wheel[i]<-60:
@@ -363,6 +381,7 @@ class MecanumRobot:
         t=time.time()
         t2=time.time()
         t3=time.time()
+        
         send_cmd_cylen=True
         # rospy.spin()
         self.first_msg=True
@@ -371,52 +390,77 @@ class MecanumRobot:
         print("Wheel: "+str(self.WHEEL_DIAMETER))
         print("x_offset:"+str(self.x_offset))
         print("cm_per_count:"+str(self.cmPerCount))
-        self.x_stop=[0.5, 0.5]
-        self.y_stop=[0.5, 0.5]
+        self.count_now=0
+        state_button_now=0
+        last_state_but=0
+        state_count_noise=0
+        state_count_sensor=0
+        last_state_ir=0
+        self.x_stop=[0.7, 0.5]
+        self.y_stop=[0.0, 0.5]
         while not rospy.is_shutdown():
             try:
-                if self.serial_port.in_waiting > 0:
+               
                     # Đọc một dòng dữ liệu từ STM32
-                    data_line = self.serial_port.readline().decode(
+                count_print=0
+                data_line = self.serial_port.read_until(b';').decode(
                     'utf-8',
                     errors='ignore'
-                    ).strip()
+                ).strip()
+                #print(data_line)
+            # remove ';'
+                data_line = data_line.replace(';', '')
 
-                # remove ';'
-                    data_line = data_line.replace(';', '')
+                parts = data_line.split('/')
+                #print(data_line)
+                # encL/encR/gz/us/ir/b1/b2
+                if len(parts) == 7:
 
-                    parts = data_line.split('/')
+                    # ===== ENCODER =====
+                    self.encoder_total[0] = int(parts[0])
+                    self.encoder_total[1] = int(parts[1])
 
-                    # encL/encR/gz/us/ir/b1/b2
-                    if len(parts) == 7:
+                    # ===== GYRO =====
+                    self.gyro_z = float(parts[2])   # rad/s
 
-                        # ===== ENCODER =====
-                        self.encoder_total[0] = int(parts[0])
-                        self.encoder_total[1] = int(parts[1])
+                    # ===== ULTRASONIC =====
+                    self.ultrasonic = float(parts[3])   # cm
 
-                        # ===== GYRO =====
-                        self.gyro_z = float(parts[2])   # rad/s
+                    # ===== IR =====
+                    self.ir_state = int(parts[4])
+                    if self.ir_state != last_state_ir:
+                        # last_state_ir = self.ir_state
+                        state_count_sensor+=1
+                    else:
+                        state_count_sensor=0
+                    if state_count_sensor>5:
+                        last_state_ir=self.ir_state
+                        state_count_sensor=0
+                        self.sensor_pub.publish(self.ir_state)
 
-                        # ===== ULTRASONIC =====
-                        self.ultrasonic = float(parts[3])   # cm
+                    # ===== BUTTON =====
+                    state_button_now = int(parts[5]) # green
+                   
+                    self.red_button= int(parts[6]) # red
+       
 
-                        # ===== IR =====
-                        self.ir_state = int(parts[4])
-
-                        # ===== BUTTON =====
-                        self.green_button = int(parts[5]) # green
-                        self.red_button= int(parts[6]) # red
-           
-
-                        if self.first_msg:
-                            self.last_encod[self.M_LEFT]=self.encoder_total[self.M_LEFT]
-                            self.last_encod[self.M_RIGHT]=self.encoder_total[self.M_RIGHT]
-                            self.first_msg=False
-                        # ===== UPDATE ODOM =====
-                        self.updatePos()
-
+                    if self.first_msg:
+                        
+                        self.last_encod[self.M_LEFT]=self.encoder_total[self.M_LEFT]
+                        self.last_encod[self.M_RIGHT]=self.encoder_total[self.M_RIGHT]
+                        self.first_msg=False
+                        last_state_but=state_button_now
+                    if state_button_now != last_state_but:
+                        self.green_button=0
+                        last_state_but = state_button_now
+                    else:
+                        self.green_button=1
+                    # ===== UPDATE ODOM =====
+                    self.updatePos()
+                else:
+                    print(f"BAD PACKET: {data_line}")
                         # ===== DEBUG =====
-                        # rospy.loginfo(
+                        #rospy.loginfo(
                         #     f"L:{self.encoder_total[0]} "
                         #     f"R:{self.encoder_total[1]} "
                         #     f"GZ:{self.gyro_z:.4f} "
@@ -425,21 +469,37 @@ class MecanumRobot:
                         #     f"B1:{self.green_button} "
                         #     f"B2:{self.button2} "
                         # )
-                        # rospy.loginfo(f"Encoders: {self.encoder_total}")
-
-                if self.stop_now:
-                    if self.green_button==0:
-                        self.stop_now=False
+                        #rospy.loginfo(f"Encoders: {self.encoder_total}")
+                
+                # if self.stop_now:
+                #     if self.green_button==0:
+                #         self.stop_now=False
+                # else:
+                #     if self.red_button==0:
+                #         self.stop_now=True
+                # if not self.stop_now and not self.stop_obstacle and not self.stop_distance:
+                #     if not self.green_button:
+                #         #print("PRESSED")
+                #         if self.count_now==0:
+                #             self.moving_pub.publish("L_arc")
+                #             print("PUBLISHED PATH")
+                #         self.count_now+=1
+                #     else:
+                #         self.count_now=0
+                    
+                    
+                if self.ultrasonic < 15.0:  # Assuming 15 cm is the threshold for stopping
+                    state_count_noise+=1
+                    if state_count_noise>6:
+                        self.obstacle_pub.publish(True)
+                        # self.stop_obstacle=True
+                        state_count_noise=0
                 else:
-                    if self.red_button==0:
-                        self.stop_now=True
-                if self.ultrasonic<12.0:
-                    self.stop_obstacle=True
-                else:
-                    self.stop_obstacle=False
-                for i in range(len(self.x_stop)):
-                    self.check_stop_transport(self.x_stop[i], self.y_stop[i])
+                    state_count_noise=0
+                #for i in range(len(self.x_stop)):
+                 #   self.check_stop_transport(self.x_stop[i], self.y_stop[i])
                 self.cmdVelTimeout()
+              
             except Exception as e:
                 rospy.logwarn(f"Error reading serial data: {e}")
             self.rate.sleep()

@@ -1,7 +1,7 @@
 #include "config.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <Adafruit_MPU6050.h>
+// #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 // #include <util/atomic.h>
 // #include "digitalWriteFast.h"
@@ -12,42 +12,48 @@ double robot_width = 1;
 // right ~ 85 count/ vong
 // left ~ 720
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-Adafruit_MPU6050 mpu;
-sensors_event_t a, g, temp;
-volatile int speed_desired[] = { 0, 0 };
+// Adafruit_MPU6050 mpu;
+// sensors_event_t a, g, temp;
+volatile int speed_desired[] = {0, 0};
 volatile int encoder_count[NMOTORS];
 long publish_encoder[NMOTORS];
 float last_encoder[NMOTORS];
 unsigned long publish_time = 0;
-volatile int pos[NMOTORS] = { 0, 0 };
+volatile int pos[NMOTORS] = {0, 0};
 SimplePID pid[NMOTORS];
 int encod_state[NMOTORS];
 robot_pos robotGlobalPos;
 /// @brief
 /// @param motor
 /// @param speed
-void control_motor(int motor, int speed) {
+void control_motor(int motor, int speed)
+{
   if (motor == RIGHT)
     speed = -speed;
   bool direct = speed > 0 ? 1 : 0;
   speed = constrain(speed, -255, 255);
 
-  if (speed == 0) {
+  if (speed == 0)
+  {
     analogWrite(pwm[motor], 0);
     digitalWrite(dir[motor], 0);
     return;
   }
   // digitalWrite(dir[motor],direct);
-  if (direct) {
+  if (direct)
+  {
     analogWrite(pwm[motor], 255 - abs(speed));
     digitalWrite(dir[motor], 1);
-  } else {
+  }
+  else
+  {
     analogWrite(pwm[motor], abs(speed));
     digitalWrite(dir[motor], 0);
   }
 }
 /// @brief  Display:
-void lcd_print(String line1, String line2) {
+void lcd_print(String line1, String line2)
+{
   lcd.clear();
 
   lcd.setCursor(0, 0);
@@ -58,45 +64,46 @@ void lcd_print(String line1, String line2) {
 }
 /// @return
 /// @brief Sensor read
-void calibIMU() {
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  lcd_print("Calib IMU", "Do not move");
+// void calibIMU() {
+//   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+//   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+//   lcd_print("Calib IMU", "Do not move");
 
-  Serial.println("Calib gyro...");
+//   Serial.println("Calib gyro...");
 
-  const int num_samples = 2000;
+//   const int num_samples = 2000;
 
-  float gx = 0;
-  float gy = 0;
-  float gz = 0;
+//   float gx = 0;
+//   float gy = 0;
+//   float gz = 0;
 
-  for (int i = 0; i < num_samples; i++) {
-    mpu.getEvent(&a, &g, &temp);
+//   for (int i = 0; i < num_samples; i++) {
+//     mpu.getEvent(&a, &g, &temp);
 
-    gx += g.gyro.x;
-    gy += g.gyro.y;
-    gz += g.gyro.z;
+//     gx += g.gyro.x;
+//     gy += g.gyro.y;
+//     gz += g.gyro.z;
 
-    delay(2);
-  }
+//     delay(2);
+//   }
 
-  gyro_offset_x = gx / num_samples;
-  gyro_offset_y = gy / num_samples;
-  gyro_offset_z = gz / num_samples;
+//   gyro_offset_x = gx / num_samples;
+//   gyro_offset_y = gy / num_samples;
+//   gyro_offset_z = gz / num_samples;
 
-  Serial.println("Done calib");
+//   Serial.println("Done calib");
 
-  lcd_print("IMU Ready", "");
-}
-void readIMU() {
-  mpu.getEvent(&a, &g, &temp);
+//   lcd_print("IMU Ready", "");
+// }
+// void readIMU() {
+//   mpu.getEvent(&a, &g, &temp);
 
-  gyro_x = g.gyro.x - gyro_offset_x;
-  gyro_y = g.gyro.y - gyro_offset_y;  // rad/s
-  gyro_z = g.gyro.z - gyro_offset_z;
-}
-float readUltrasonic() {
+//   gyro_x = g.gyro.x - gyro_offset_x;
+//   gyro_y = g.gyro.y - gyro_offset_y;  // rad/s
+//   gyro_z = g.gyro.z - gyro_offset_z;
+// }
+float readUltrasonic()
+{
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
 
@@ -111,17 +118,21 @@ float readUltrasonic() {
 
   return distance;
 }
-bool readIR() {
+bool readIR()
+{
   return digitalRead(IR);
 }
-bool readButton1() {
+bool readButton1()
+{
   return digitalRead(BT1);
 }
 
-bool readButton2() {
+bool readButton2()
+{
   return digitalRead(BT2);
 }
-void setupSensor() {
+void setupSensor()
+{
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
 
@@ -151,10 +162,9 @@ void setupSensor() {
 }
 /// @param
 
-
-
 /// @brief  send serial
-void send_sensor() {
+void send_sensor()
+{
   ///  encL/encR/gz/us/ir/b1/b2;
   unsigned long time_delay = millis();
   // readIMU();
@@ -167,36 +177,42 @@ void send_sensor() {
   int bt2 = digitalRead(BT2);
 
   String sensor_data =
-    String(publish_encoder[LEFT]) + "/" + String(publish_encoder[RIGHT]) + "/" + String(gyro_z, 4) + "/" + String(distance, 1) + "/" + String(ir_state) + "/" + String(bt1) + "/" + String(bt2) + ";"; /// bt1 = green --> press = 0
+      String(publish_encoder[LEFT]) + "/" + String(publish_encoder[RIGHT]) + "/" + String(gyro_z, 4) + "/" + String(distance, 1) + "/" + String(ir_state) + "/" + String(bt1) + "/" + String(bt2) + ";"; /// bt1 = green --> press = 0
 
   Serial.println(sensor_data);
   // Serial.println("delay: "+String(millis()-time_delay));
 }
 /// @return
-void IRAM_ATTR encoderLeftMotor() {
+void IRAM_ATTR encoderLeftMotor()
+{
   static bool old_a = false;
   bool newA = digitalRead(enca[LEFT]);
   bool newB = digitalRead(encb[LEFT]);
   int delta = 0;
 
-  if (newA && !old_a) {
+  if (newA && !old_a)
+  {
     delta = newB > 0 ? dir_encod[LEFT] : -dir_encod[LEFT];
-  }  // rising
-  else {
+  } // rising
+  else
+  {
     delta = newB > 0 ? -dir_encod[LEFT] : dir_encod[LEFT];
   }
   encoder_count[LEFT] -= delta;
   old_a = newA;
 }
-void IRAM_ATTR encoderRightMotor() {
+void IRAM_ATTR encoderRightMotor()
+{
   static bool old_a = false;
   bool newA = digitalRead(enca[RIGHT]);
   bool newB = digitalRead(encb[RIGHT]);
   int delta = 0;
-  if (newA && !old_a) {
+  if (newA && !old_a)
+  {
     delta = newB > 0 ? dir_encod[RIGHT] : -dir_encod[RIGHT];
-  }  // rising
-  else {
+  } // rising
+  else
+  {
     delta = newB > 0 ? -dir_encod[RIGHT] : dir_encod[RIGHT];
   }
   encoder_count[RIGHT] -= delta;
@@ -207,13 +223,17 @@ void IRAM_ATTR encoderRightMotor() {
 // 0,1,2,3I0,1; --> IO on off
 // 1L2R3W; --> config odom param
 // 10:0.5#0; --> PID CONFIG
-bool receive_uart() {
-  if (Serial.available()) {
+bool receive_uart()
+{
+  if (Serial.available())
+  {
     String c = Serial.readStringUntil(';');
     int index_now = c.indexOf("/");
 
     int index_kp_desired = c.indexOf(":");
-    if (index_now != -1) {
+
+    if (index_now != -1)
+    {
       // int index_now_2 = c.indexOf("*");
       // speed_linear = c.substring(0, index_now).toFloat();
       // angular_speed = (c.substring(index_now + 1).toFloat());
@@ -230,14 +250,18 @@ bool receive_uart() {
       // erial.print(",");
       // Serial.println(right_sp);
       return 1;
-    } else if (index_kp_desired != -1) {
+    }
+    else if (index_kp_desired != -1)
+    {
       int index_cal = c.indexOf("#");
-      if (index_cal != -1) {
+      if (index_cal != -1)
+      {
         float new_kp = c.substring(0, index_kp_desired).toFloat();
         float new_ki = c.substring(index_kp_desired + 1, index_cal).toFloat();
         float new_kd = c.substring(index_cal + 1).toFloat();
 
-        for (int i = 0; i < NMOTORS; i++) {
+        for (int i = 0; i < NMOTORS; i++)
+        {
           pid[i].setParams(new_kp, new_ki, new_kd, 255);
         }
 
@@ -248,58 +272,79 @@ bool receive_uart() {
         Serial.println(pid[M_L_UP].GetKd());
       }
     }
+    if (c.startsWith("@")) // @Hello#World;
+    {
+      int index_sharp = c.indexOf('#');
+
+      String line1 = c.substring(1, index_sharp);
+      String line2 = c.substring(index_sharp + 1);
+
+      lcd_print(line1, line2);
+      // return true;
+    }
   }
   return 0;
 }
-void control_speed() {
-  int delta_encoder[NMOTORS] = { 0, 0 };
+void control_speed()
+{
+  int delta_encoder[NMOTORS] = {0, 0};
   /// lay so xung encoder
 
   // cli();
-  for (int i = 0; i < NMOTORS; i++) {
+  for (int i = 0; i < NMOTORS; i++)
+  {
     delta_encoder[i] = encoder_count[i];
     encoder_count[i] = 0;
   }
   // sei();
   ////tinh van toc
-  int m_pwm[NMOTORS] = { 0, 0 };
+  int m_pwm[NMOTORS] = {0, 0};
   float speed_filter[NMOTORS];
 
-  for (int i = 0; i < NMOTORS; i++) {
+  for (int i = 0; i < NMOTORS; i++)
+  {
 
-    publish_encoder[i] += delta_encoder[i];  // cong don encoder de tinh vi tri
+    publish_encoder[i] += delta_encoder[i]; // cong don encoder de tinh vi tri
     speed_filter[i] = delta_encoder[i] * 0.23905722 + last_encoder[i] * 0.23905722 + speed_filter[i] * 0.52188555;
     last_encoder[i] = delta_encoder[i];
-    m_pwm[i] = pid[i].compute(delta_encoder[i], speed_desired[i], delta_time);  // speed >0 ->  delta must >0 pid
+    m_pwm[i] = pid[i].compute(delta_encoder[i], speed_desired[i], delta_time); // speed >0 ->  delta must >0 pid
   }
   // m_pwm[LEFT] = -m_pwm[LEFT];
   // Serial.print(publish_encoder[0]);
   // Serial.print(",");
   //   Serial.println(publish_encoder[1]);
-  if (ros_serial) {
-    for (int i = 0; i < NMOTORS; i++) {
+  if (ros_serial)
+  {
+    for (int i = 0; i < NMOTORS; i++)
+    {
       control_motor(i, m_pwm[i]);
     }
-  } else {
+  }
+  else
+  {
     // delay(200);
     static bool start_run_motor = 0;
-    if (receive_uart() && start_run_motor == 0) {
+    if (receive_uart() && start_run_motor == 0)
+    {
       start_run_motor = 1;
       for (int i = 0; i < NMOTORS; i++)
         pid[i].reset_all();
     }
-    if (start_run_motor == 1) {
+    if (start_run_motor == 1)
+    {
       static uint16_t count_print = 0;
       count_print += 1;
       Serial.print(delta_encoder[LEFT]);
       Serial.print(",");
       Serial.println(delta_encoder[RIGHT]);
-      for (int i = 0; i < NMOTORS; i++) {
+      for (int i = 0; i < NMOTORS; i++)
+      {
         control_motor(i, m_pwm[i]);
       }
       //  control_motor(LEFT, speed_desired[LEFT]);
       // control_motor(RIGHT, speed_desired[RIGHT]);
-      if (count_print >= 200) {
+      if (count_print >= 200)
+      {
         count_print = 0;
         speed_desired[0] = 0;
         speed_desired[1] = 0;
@@ -311,7 +356,8 @@ void control_speed() {
     }
   }
 }
-void send_odom() {
+void send_odom()
+{
 
   String odom_data = String(publish_encoder[LEFT]) + "/" + String(publish_encoder[RIGHT]) + ";";
   Serial.println(odom_data);
@@ -319,9 +365,11 @@ void send_odom() {
   //   publish_encoder[i]=0;
   // }
 }
-void setup() {
+void setup()
+{
   Serial.begin(57600);
-  for (int k = 0; k < NMOTORS; k++) {
+  for (int k = 0; k < NMOTORS; k++)
+  {
     pinMode(enca[k], INPUT_PULLUP);
     pinMode(encb[k], INPUT_PULLUP);
     pinMode(pwm[k], OUTPUT);
@@ -329,11 +377,12 @@ void setup() {
     pid[k].setParams(p_gain_default, i_gain_default, d_gain_default, 255);
     // pinMode(dir2[k], OUTPUT);
   }
-  pinMode(13,OUTPUT);
-  pinMode(25,OUTPUT);
-  digitalWrite(13,HIGH);
-  digitalWrite(25,HIGH);
-  for (int i = 0; i < 2; i++) {
+  pinMode(13, OUTPUT);
+  pinMode(25, OUTPUT);
+  digitalWrite(13, HIGH);
+  digitalWrite(25, HIGH);
+  for (int i = 0; i < 2; i++)
+  {
     control_motor(i, 0);
   }
   setupSensor();
@@ -341,7 +390,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(enca[RIGHT]), encoderRightMotor, CHANGE);
   publish_time = micros();
 }
-void loop() {
+void loop()
+{
   static unsigned long time_loop_pid = millis();
   static unsigned long time_publish = millis();
   static int last_a_left = 0;
@@ -380,6 +430,6 @@ void loop() {
 
   //   time_loop_pid = millis();
   // }
-  callFunctionPeriodically(control_speed, LOOP_MS, time_loop_pid);  // tinh pid van toc va encoder
-  callFunctionPeriodically(send_sensor, LOOP_PUB, time_publish);    // gui len pi neu dung ros serial
+  callFunctionPeriodically(control_speed, LOOP_MS, time_loop_pid); // tinh pid van toc va encoder
+  callFunctionPeriodically(send_sensor, LOOP_PUB, time_publish);   // gui len pi neu dung ros serial
 }
