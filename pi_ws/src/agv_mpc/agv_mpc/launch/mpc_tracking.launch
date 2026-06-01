@@ -1,0 +1,26 @@
+<launch>
+    <!--  ************** Global Parameters ***************  -->
+    <!-- <param name="use_sim_time" value="true"/> -->
+
+   
+    <arg name="gui" default="false"/>
+    
+
+    <!--  ************** Reference trajectory generation **************  -->
+    <node name="mpc_trajectory_generation" pkg="agv_mpc" type="mpc_trajectory_generation.py"  >
+    </node>
+    <!-- <node name="task" pkg="agv_mpc" type="task_manager.py"/> -->
+
+
+    <!--  ************** MPC Node **************  -->
+    <node name="MPC_tracking" pkg="agv_mpc" type="tracking_reference_trajectory" output="screen" >
+        <rosparam file="$(find agv_mpc)/params/mpc_local_square_params.yaml" command="load" />
+        <!--rosparam file="$(find agv_mpc)/params/mpc_local_params.yaml" command="load" /-->
+        <!--rosparam file="$(find agv_mpc)//params/mpc_local_epitrochoid_params.yaml" command="load" /-->
+    </node>
+
+
+    <!--  ************** Visualisation **************  -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find agv_mpc)/rviz/rviz_navigation.rviz"/>
+
+</launch>

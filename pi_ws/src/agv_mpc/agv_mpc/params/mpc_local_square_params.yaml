@@ -1,0 +1,47 @@
+
+# Parameters for control loop
+pub_twist_cmd: true
+debug_info: false
+delay_mode: true
+max_speed: 0.2 # unit: m/s 
+waypoints_dist: -1.0 # unit: m, set < 0 means computed by node
+path_length: 0.32 # unit: m 0.4
+goal_radius: 0.5 # unit: m
+controller_freq: 10
+###
+slowdown_radius: 0.05 # unit: m, radius to start slowing down
+stop_radius: 0.12 # unit: m, radius to stop the robot
+rotate_vel: 0.5 # unit: rad/s, rotation velocity when the robot is outside the slowdown radius but has a large yaw error
+yaw_threshold: 1.2 # unit: rad, yaw error threshold to trigger rotation behavior
+# Parameter for MPC solver
+mpc_steps: 20.0
+mpc_ref_cte: 0.0
+mpc_ref_vel: 0.2
+mpc_ref_etheta: 0.0
+mpc_w_cte: 1000.0
+mpc_w_etheta: 500.0
+mpc_w_vel: 10.0
+mpc_w_angvel: 1.0
+mpc_w_angvel_d: 10.0
+mpc_w_accel: 1.0
+mpc_w_accel_d: 1.0
+mpc_max_angvel: 0.4 # Maximal angular velocity
+mpc_max_throttle: 1.0 # Maximal throttle accel
+mpc_bound_value: 1.0e3 # Bound value for other variables
+## param for adaptive
+L_d: 0.02
+mpc_base_cte: 800.0
+mpc_curve_cte: 800.0
+mpc_load_cte: 550.0
+mpc_base_etheta: 300.0
+mpc_curve_etheta: 350.0
+mpc_load_etheta: 200.0
+mpc_base_steering_penal: 3.0
+mpc_curve_steering_penal: 1.0
+mpc_load_steering_penal: 2.0
+mpc_base_acc_penal: 2.0
+mpc_load_acc_penal: 1.5
+
+
+
+
