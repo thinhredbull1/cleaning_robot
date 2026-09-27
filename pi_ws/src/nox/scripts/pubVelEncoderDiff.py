@@ -124,8 +124,9 @@ class MecanumRobot:
     def cmdVelCb(self,msg):
         self.getCmdVel=True
         self.vx_run=msg.linear.x*100
+        self.vy_run=msg.linear.y*100
         self.w_run=msg.angular.z
-        self.calSpeed(self.vx_run,self.w_run)
+        self.calSpeed(self.vx_run,self.vy_run,self.w_run)
         self.runRobot()
     def NormalizeOverflow(self,encoder_now,last_encod):
         new_delta=encoder_now-last_encod
@@ -145,26 +146,25 @@ class MecanumRobot:
     def updatePos(self):
         encoderTick=[0,0]
         delta_tick=[0,0,0,0]
-        delta=[0,0]
+        delta=[0,0,0,0]
         delta_l_u,delta_r_u=self.CaldiffEncoder(self.M_LEFT_UP,self.M_RIGHT_UP)
         delta_l,delta_r=self.CaldiffEncoder(self.M_LEFT_DOWN,self.M_RIGHT_DOWN)
         encoderTick=[delta_l_u,delta_l,delta_r_u,delta_r]
         for i in range(self.NMOTORS):
-            delta_tick[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
-        delta[self.M_LEFT]= (delta_tick[self.M_LEFT_UP]+delta_tick[self.M_LEFT_DOWN])/2.0
-        delta[self.M_RIGHT]= (delta_tick[self.M_RIGHT_UP]+delta_tick[self.M_RIGHT_DOWN])/2.0
-        dxy = (delta[self.M_LEFT]+delta[self.M_RIGHT])/2.0
-        dtheta = ((delta[self.M_LEFT]-delta[self.M_RIGHT]))/self.total_length
+            delta[i] =  encoderTick[i] *self.cmPerCount  # 0.14260
+        # delta[self.M_LEFT]= (delta_tick[self.M_LEFT_UP]+delta_tick[self.M_LEFT_DOWN])/2.0
+        # delta[self.M_RIGHT]= (delta_tick[self.M_RIGHT_UP]+delta_tick[self.M_RIGHT_DOWN])/2.0
+        dx = (delta[self.M_LEFT_UP] + delta[self.M_RIGHT_UP] + delta[self.M_LEFT_DOWN] + delta[self.M_RIGHT_DOWN]) / 4.0
+        dy = (-delta[self.M_RIGHT_UP] - delta[self.M_LEFT_DOWN] + delta[self.M_LEFT_UP] + delta[self.M_RIGHT_DOWN]) / 4.0
+        dtheta = (delta[self.M_RIGHT_UP] - delta[self.M_LEFT_DOWN] - delta[self.M_LEFT_UP] + delta[self.M_RIGHT_DOWN]) / (4.0 * self.total_length)
         # dtheta=self.dtheta
    
-        dx = math.cos(self.robot_pose[2]+(dtheta/2.0)) * dxy
-        dy = math.sin(self.robot_pose[2]+(dtheta/2.0)) * dxy
+  
         self.vx_now=0
         self.vy_now=0
         self.theta_now=0
         current_time = rospy.Time.now()
         dt = (current_time - self.last_time_encod).to_sec()
-        dxy=dxy/100.0
         dx=dx/100.0
         dy=dy/100.0
         # print(dt)
@@ -174,12 +174,12 @@ class MecanumRobot:
         if dt>0:
             # dt=dt
             # dtheta=dtheta
-            self.vx_now=dxy/dt
-            self.vy_now=0
+            self.vx_now=dx/dt
+            self.vy_now=dy/dt
             self.theta_now=dtheta/dt
 
-            self.robot_pose[0] +=dx 
-            self.robot_pose[1] += dy 
+            self.robot_pose[0] += dx *math.cos(self.robot_pose[2]) -dy*math.sin(self.robot_pose[2])
+            self.robot_pose[1] += dy *math.cos(self.robot_pose[2]) + dx*math.sin(self.robot_pose[2])
             self.robot_pose[2] += dtheta 
             if(self.robot_pose[2])>=math.pi:
                 self.robot_pose[2]-=2.0*math.pi
@@ -256,7 +256,7 @@ class MecanumRobot:
             # print(f"{self.theta_now}")
         self.last_time_encod=current_time
 
-    def calSpeed(self, vx, dtheta):
+    def calSpeed(self, vx,vy, dtheta):
         # vx w --> 
         # 
         #
@@ -268,10 +268,10 @@ class MecanumRobot:
 
         left = (vx*self.coeff_speed - dtheta * self.total_length/2.0)
         right = (vx*self.coeff_speed + dtheta * self.total_length/2.0)
-        speed_cm_s[self.M_LEFT_UP] = left
-        speed_cm_s[self.M_LEFT_DOWN] = left
-        speed_cm_s[self.M_RIGHT_UP] = right
-        speed_cm_s[self.M_RIGHT_DOWN] = right
+        speed_cm_s[self.M_LEFT_UP] = (vx + vy - dtheta * self.total_length)
+        speed_cm_s[self.M_RIGHT_UP] = (vx - vy + dtheta * self.total_length)
+        speed_cm_s[self.M_LEFT_DOWN] = (vx - vy - dtheta * self.total_length)
+        speed_cm_s[self.M_RIGHT_DOWN] = (vx + vy + dtheta * self.total_length)
         
         # print(speed_cm_s)
         for i in range(self.NMOTORS):
@@ -282,7 +282,7 @@ class MecanumRobot:
     def runRobot(self):
         speed_wheel=[0,0,0,0]
         max_speed=30
-        scale_factor=0.71
+        scale_factor=1.0
         for i in range(self.NMOTORS):
             # if(i in self.inverseDir):
             #     self.speed_desired[i]=-self.speed_desired[i]
@@ -291,7 +291,7 @@ class MecanumRobot:
                 speed_wheel[i]=max_speed
             elif speed_wheel[i]<-max_speed:
                 speed_wheel[i]=-max_speed
-        serial_data = "{}/{};".format(speed_wheel[self.M_LEFT_UP],speed_wheel[self.M_RIGHT_UP])
+        serial_data = "{}/{}&{}*{};".format(speed_wheel[self.M_LEFT_UP],speed_wheel[self.M_LEFT_DOWN],speed_wheel[self.M_RIGHT_UP],speed_wheel[self.M_RIGHT_DOWN])
         self.moving=True
         # Gửi dữ liệu xuống serial
         # print(serial_data)

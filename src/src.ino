@@ -19,8 +19,7 @@ int encod_state[NMOTORS];
 robot_pos robotGlobalPos;
 void control_motor(int motor, int speed)
 {
-  if (motor == M_L_UP)
-    speed = -speed;
+if(motor==M_L_DOWN || motor==M_R_DOWN)speed=-speed;
   bool direct = speed > 0 ? 1 : 0;
   speed = constrain(speed, -255, 255);
 
@@ -111,10 +110,7 @@ void IRAM_ATTR encoderRightMotor()
   encoder_count[M_R_UP] -= delta;
   old_a = newA;
 }
-// 15/15; --> speed_desired()
-// RESET; = reset odom
-// 0,1,2,3I0,1; --> IO on off
-// 1L2R3W; --> config odom param
+// 15/15*15&15; --> speed_desired()
 // 10:0.5#0; --> PID CONFIG
 bool receive_uart()
 {
@@ -126,14 +122,15 @@ bool receive_uart()
     int index_kp_desired = c.indexOf(":");
     if (index_now != -1)
     {
-      // int index_now_2 = c.indexOf("*");
+      int index_now_2 = c.indexOf("*");
+      int ind_3 = c.indexOf("&");
       // speed_linear = c.substring(0, index_now).toFloat();
       // angular_speed = (c.substring(index_now + 1).toFloat());
 
       speed_desired[M_L_UP] = c.substring(0, index_now).toInt();
-      speed_desired[M_R_UP] = c.substring(index_now + 1).toInt();
-      speed_desired[M_R_DOWN] = speed_desired[M_R_UP];
-      speed_desired[M_L_DOWN] = speed_desired[M_L_UP];
+      speed_desired[M_R_UP] = c.substring(index_now + 1,index_now_2).toInt();
+      speed_desired[M_R_DOWN] = c.substring(index_now_2 + 1,ind_3).toInt();
+      speed_desired[M_L_DOWN] = c.substring(ind_3 + 1).toInt();;
       // int left_sp = c.substring(0, index_now).toInt();
       // int right_sp = c.substring(index_now + 1).toInt();
       // control_motor(0, left_sp);
@@ -219,7 +216,9 @@ void control_speed()
       count_print += 1;
       Serial.print(delta_encoder[M_L_UP]);
       Serial.print(",");
-      Serial.println(delta_encoder[M_R_UP]);
+      Serial.print(delta_encoder[M_R_UP]);
+      Serial.print(",");
+      Serial.println(m_pwm[M_L_UP]);
       for (int i = 0; i < NMOTORS; i++)
       {
         control_motor(i, m_pwm[i]);
@@ -266,7 +265,7 @@ void setup()
   dir_encod[M_L_DOWN] = dir_M_L_DOWN;
   dir_encod[M_R_UP] = dir_M_R_UP;
   dir_encod[M_R_DOWN] = dir_M_R_DOWN;
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 4; i++)
   {
     control_motor(i, 0);
   }
@@ -303,6 +302,7 @@ void loop()
   //   }
   //   encoder_count[LEFT] += delta_now;
   // }
+  
   // if (PinStateChanged(encb_r_now, &last_a_right, &last_b_right)) {
   //    bool enca_now=digitalRead(enca[RIGHT]);
   //   if (last_b_right == 0) {

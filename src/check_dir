@@ -268,7 +268,7 @@ void setup()
   dir_encod[M_L_DOWN]=dir_M_L_DOWN;
   dir_encod[M_R_UP]=dir_M_R_UP;
   dir_encod[M_R_DOWN]=dir_M_R_DOWN;
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 4; i++)
   {
     control_motor(i, 0);
   }

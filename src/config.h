@@ -53,10 +53,10 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
 #define NMOTORS 4
 #define LEFT 0
 #define RIGHT 1
-#define M_L_UP 0
-#define M_L_DOWN 1 
-#define M_R_UP 2
-#define M_R_DOWN 3
+#define M_L_UP 0 // L_D 
+#define M_L_DOWN 1  // L_UP
+#define M_R_UP 2 // R_DOWN -1
+#define M_R_DOWN 3 // 
 #define LOOP_PUB 50 // 50ms
 //macro for detection af rasing edge
 #define RE(signal, state) (state=(state<<1)|(signal&1)&3)==1
@@ -85,7 +85,7 @@ typedef struct robot_coord{
   double theta;
 }robot_pos;
 #define ros_serial 1
-// max speed 30 pulse / 100hz
+// max speed 25 pulse / 100hz
 //2030 pulse 1 step
 
 #define SV 23
@@ -100,18 +100,28 @@ typedef struct robot_coord{
 #define IR_L 39
 #define IR_U 36
 const bool test_ff=0;
-const int enca[] = {25,27,13,5};
-const int encb[]= {33,26,14,15}; 
-const int pwm[] = { 4,17,19,22 };  //{10,11}
-const int dir[] = { 16,18 ,21,23};
-const int dir_M_L_UP=1;
-const int dir_M_L_DOWN=1;
-const int dir_M_R_UP=-1;
-const int dir_M_R_DOWN=-1;
-int dir_encod[]={1,1,1,1};
-float p_gain_default=15.15;
-float i_gain_default=1.05;
-float d_gain_default=1.0;
+const int enca[] = {26,25,15,14}; // ;;;15
+const int encb[]= {27,33,5,13};  ///  ;;5
+const int pwm[] = {
+    19,    // M1 -> IN_M1
+    22,    // M2 -> IN_M3
+    16,    // M3 -> IN_M6
+    17     // M4 -> IN_M7? 
+};
+const int dir[] = {
+    21,    // M1 -> IN_M2
+    23,    // M2 -> IN_M4
+    4,    // M3 -> IN_M5
+    18      // M4 -> IN_M8
+};
+const int dir_M_L_UP=-1;
+const int dir_M_L_DOWN=-1;
+const int dir_M_R_UP=1;
+const int dir_M_R_DOWN=1;
+int dir_encod[]={-1,-1,-1,-1};
+float p_gain_default=32.05;
+float i_gain_default=1.45;
+float d_gain_default=0.5;
 const int dir_encod_M1=1;
 const int dir_encod_M0=-1; 
 const float LOOP_FREQUENCY=100.0; // hz
