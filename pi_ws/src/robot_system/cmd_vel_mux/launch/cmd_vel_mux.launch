@@ -1,0 +1,17 @@
+<launch>
+
+    <!-- Load mux configuration -->
+    <rosparam
+        command="load"
+        file="$(find cmd_vel_mux)/config/mux.yaml"
+    />
+
+    <!-- cmd_vel mux -->
+    <node
+        pkg="cmd_vel_mux"
+        type="cmd_vel_mux_node.py"
+        name="cmd_vel_mux"
+        output="screen"
+    />
+
+</launch>

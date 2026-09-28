@@ -1,0 +1,5 @@
+<launch>
+
+ <include file="$(find nox)/launch/slam_2.launch"/>
+
+</launch>

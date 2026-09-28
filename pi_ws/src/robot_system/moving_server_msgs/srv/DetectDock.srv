@@ -1,0 +1,16 @@
+# Dock identifier, e.g. "dock_01". Empty -> nearest dock.
+string dock_id
+---
+bool success
+
+# Pose of the dock itself (map frame)
+geometry_msgs/PoseStamped dock_pose
+
+# Trajectory to follow from the current pose into the dock.
+# Ordered from the entry point to the final docked pose.
+nav_msgs/Path approach_path
+
+# Detection confidence, 0.0 .. 1.0
+float64 confidence
+
+string message

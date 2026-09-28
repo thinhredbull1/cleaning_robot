@@ -1,0 +1,15 @@
+<launch>
+
+    <rosparam
+        command="load"
+        file="$(find localize_manager)/config/localize_manager.yaml"
+    />
+
+    <node
+        pkg="localize_manager"
+        type="localize_manager_node.py"
+        name="localize_manager"
+        output="screen"
+    />
+
+</launch>

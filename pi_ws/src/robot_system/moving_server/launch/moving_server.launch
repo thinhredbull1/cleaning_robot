@@ -1,0 +1,59 @@
+<launch>
+
+  <arg name="config_file"
+       default="$(find moving_server)/config/moving_server.yaml"/>
+
+  <!-- Publish a fake dock detection service for bring-up / simulation -->
+  <arg name="use_mock_dock_detector" default="false"/>
+
+  <!-- Relay giving a resettable odometry on top of a source that has no
+       reset of its own, e.g. Gazebo -->
+  <arg name="use_odom_reset_relay" default="false"/>
+  <arg name="raw_odom_topic" default="/odom"/>
+
+  <node if="$(arg use_odom_reset_relay)"
+        pkg="moving_server"
+        type="odom_reset_node.py"
+        name="odom_reset"
+        output="screen">
+
+    <param name="input_topic" value="$(arg raw_odom_topic)"/>
+    <param name="output_topic" value="/odom_reset"/>
+    <param name="output_frame" value="odom_reset"/>
+    <param name="reset_service" value="/reset_odom"/>
+
+  </node>
+
+  <node pkg="moving_server"
+        type="moving_server_node.py"
+        name="moving_server"
+        output="screen">
+
+    <rosparam file="$(arg config_file)" command="load"/>
+
+    <!-- Read the relayed odometry instead of the raw one -->
+    <param if="$(arg use_odom_reset_relay)"
+           name="odom_topic" value="/odom_reset"/>
+    <param if="$(arg use_odom_reset_relay)"
+           name="odom_frame" value="odom_reset"/>
+    <param if="$(arg use_odom_reset_relay)"
+           name="reset_odom_service" value="/reset_odom"/>
+
+  </node>
+
+  <node if="$(arg use_mock_dock_detector)"
+        pkg="moving_server"
+        type="mock_dock_detector_node.py"
+        name="dock_detector"
+        output="screen">
+
+    <rosparam file="$(arg config_file)" command="load"/>
+
+    <!-- Bring-up only: fakes the odometry reset service, unless the
+         relay above already provides a real one -->
+    <param name="provide_mock_reset_odom"
+           value="$(eval not arg('use_odom_reset_relay'))"/>
+
+  </node>
+
+</launch>

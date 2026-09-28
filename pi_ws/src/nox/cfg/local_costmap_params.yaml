@@ -2,7 +2,7 @@ local_costmap:
   global_frame: map
   robot_base_frame: base_link
 
-  update_frequency: 8.0 #hz
+  update_frequency: 5.0 #hz
   publish_frequency: 1.0
   transform_tolerance: 1.2  
   inflation_radius: 0.2

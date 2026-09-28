@@ -1,0 +1,30 @@
+output_topic: /cmd_vel
+
+publish_rate: 30.0
+
+sources:
+
+  navigation:
+    topic: /cmd_vel/navi
+    priority: 40
+    timeout: 0.5
+
+  joystick:
+    topic: /cmd_vel/joystick
+    priority: 20
+    timeout: 0.3
+
+  tracking:
+    topic: /cmd_vel/tracking
+    priority: 60
+    timeout: 0.3
+
+  docking:
+    topic: /cmd_vel/docking
+    priority: 80
+    timeout: 0.3
+
+  emergency:
+    topic: /cmd_vel/emergency
+    priority: 100
+    timeout: 0.5

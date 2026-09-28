@@ -1,0 +1,92 @@
+# =====================================================
+# GOAL
+# =====================================================
+
+# --- Mode ---
+uint8 MODE_MOVE_TO_POINT = 0
+uint8 MODE_TRACK_PERSON  = 1
+uint8 MODE_DOCKING       = 2
+uint8 MODE_UNDOCKING     = 3
+
+uint8 mode
+
+# --- MODE_MOVE_TO_POINT ---
+# Goal pose, forwarded to move_base
+geometry_msgs/PoseStamped target_pose
+
+# --- MODE_TRACK_PERSON ---
+# Topic (geometry_msgs/PoseStamped) carrying the person pose.
+# Empty -> use the default from the parameter server.
+string target_topic
+
+# Distance the robot tries to keep from the person [m]
+float64 follow_distance
+
+# Tracking finishes successfully once the person has stayed
+# inside follow_distance +/- goal_tolerance for
+# hold_time seconds. 0 -> track until preempted.
+float64 hold_time
+
+# --- MODE_DOCKING ---
+# Dock identifier passed to the dock detection service.
+# Empty -> use the default from the parameter server.
+#
+# Docking starts from where the robot stands: reaching the pre-dock area
+# is a separate MODE_MOVE_TO_POINT goal.
+string dock_id
+
+# --- Common ---
+# Overall timeout [s]. 0 -> use the default from the parameter server.
+float64 timeout
+
+---
+# =====================================================
+# RESULT
+# =====================================================
+
+uint8 RESULT_SUCCESS         = 0
+uint8 RESULT_ABORTED         = 1
+uint8 RESULT_PREEMPTED       = 2
+uint8 RESULT_TIMEOUT         = 3
+uint8 RESULT_INVALID_GOAL    = 4
+uint8 RESULT_MOVE_BASE_FAIL  = 5
+uint8 RESULT_TARGET_LOST     = 6
+uint8 RESULT_DETECTION_FAIL  = 7
+uint8 RESULT_TRACKING_FAIL   = 8
+uint8 RESULT_ODOM_FAIL       = 9
+
+bool success
+uint8 result_code
+string message
+
+# Robot pose when the goal terminated (map frame)
+geometry_msgs/PoseStamped final_pose
+
+---
+# =====================================================
+# FEEDBACK
+# =====================================================
+
+uint8 STATE_IDLE            = 0
+uint8 STATE_MOVE_BASE       = 1
+uint8 STATE_TRACKING_PERSON = 2
+uint8 STATE_DETECTING_DOCK  = 4
+uint8 STATE_TRAJ_TRACKING   = 5
+uint8 STATE_UNDOCKING       = 6
+uint8 STATE_FINISHING       = 7
+uint8 STATE_RESET_ODOM      = 8
+uint8 STATE_ALIGNING        = 9
+
+uint8 state
+string state_name
+
+# Distance left to the current objective [m]
+float64 distance_remaining
+
+# Heading error to the current objective [rad]
+float64 heading_error
+
+# Progress of the whole sequence, 0.0 .. 1.0
+float64 progress
+
+string message

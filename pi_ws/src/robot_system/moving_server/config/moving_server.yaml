@@ -1,0 +1,195 @@
+# =====================================================
+# Frames
+#
+# global_frame is only used for the move_base legs.
+# The closed loop controllers (person tracking, dock
+# approach) run in odom_frame: continuous and drift
+# free, unlike map which jumps on relocalisation.
+# =====================================================
+
+global_frame: map
+odom_frame: odom
+base_frame: base_footprint
+
+# Odometry is read from the topic, not from TF, because
+# the base driver resets it before the dock approach.
+odom_topic: /odom_reset
+odom_timeout: 0.5
+
+# Reset service of the base driver.
+# reset_odom_service_type: trigger -> std_srvs/Trigger
+#                          empty   -> std_srvs/Empty
+reset_odom_service: /reset_odom
+reset_odom_service_type: trigger
+
+# =====================================================
+# Loop / timing
+# =====================================================
+
+control_rate: 20.0          # [Hz]
+default_timeout: 300.0      # [s] used when goal.timeout == 0
+move_base_wait_timeout: 500.0
+
+# =====================================================
+# Interfaces
+# =====================================================
+
+move_base_action: /move_base
+person_pose_topic: /person_tracker/pose
+detect_dock_service: /dock_detector/detect_dock
+
+# Outputs go to cmd_vel_mux, see cmd_vel_mux/config/mux.yaml
+tracking_cmd_vel_topic: /cmd_vel/tracking
+docking_cmd_vel_topic: /cmd_vel
+
+# =====================================================
+# Person tracking (point to point)
+#
+# holonomic: true -> mecanum base, the robot translates
+# straight to the standoff point (vx, vy) while turning
+# to face the person. false -> differential fallback.
+# =====================================================
+
+person_tracking:
+
+  holonomic: true
+
+  follow_distance: 1.0
+  distance_tolerance: 0.15
+  angle_tolerance: 0.10
+
+  kp_linear: 0.8
+  kp_lateral: 0.9
+  kp_angular: 1.5
+
+  max_linear_velocity: 0.45
+  max_lateral_velocity: 0.35
+  max_translation_speed: 0.5
+  min_linear_velocity: 0.05
+  max_angular_velocity: 1.2
+  linear_acceleration: 0.6
+  lateral_acceleration: 0.6
+  angular_acceleration: 2.0
+
+  # Differential mode only
+  turn_in_place_angle: 0.7
+
+  allow_backward: true
+  min_safe_distance: 0.35
+
+  # Abort if no person pose is received for this long [s]
+  target_timeout: 1.5
+
+# =====================================================
+# Docking (trajectory tracking)
+# =====================================================
+
+docking:
+
+  # --- Detection ---
+  detection_retries: 3
+  detection_timeout: 5.0
+  min_confidence: 0.5
+
+  # --- Geometry of the sequence ---
+  # The robot must already be in the pre-dock area: going
+  # there is a separate MOVE_TO_POINT goal.
+  #
+  # Trajectory tracking, in the odom frame:
+  #   leg 1 (ALIGNING) -> point align_distance in front of the
+  #                       charger, parallel to it
+  #   leg 2 (TRAJ_TRACKING) -> straight run into the charger
+  align_distance: 0.45
+
+  # Stop that far short of the dock pose itself
+  final_offset: 0.0
+
+  # Sampling of the generated paths [m]
+  path_resolution: 0.05
+
+  # --- Odometry reset, before the approach ---
+  reset_odom_required: true
+  reset_odom_timeout: 3.0
+
+  # --- Undocking ---
+  undock_distance: 0.5
+  undock_velocity: 0.1
+
+  # --- Trajectory tracking, leg 2 (entering the charger) ---
+  # holonomic: true -> mecanum, translation and heading are
+  # controlled independently, the robot stays aligned with the
+  # dock during the whole approach and corrects the cross track
+  # error sideways instead of steering.
+  tracking:
+
+    holonomic: true
+
+    lookahead_distance: 0.20
+    min_lookahead_distance: 0.10
+    lookahead_gain: 0.4
+
+    kp_linear: 1.0
+    kp_lateral: 1.2
+    kp_angular: 1.6
+    kp_cross_track: 1.0
+    kp_final_yaw: 1.2
+
+    max_linear_velocity: 0.08
+    max_lateral_velocity: 0.05
+    max_translation_speed: 0.09
+    min_linear_velocity: 0.02
+    max_angular_velocity: 0.4
+    linear_acceleration: 0.2
+    lateral_acceleration: 0.2
+    angular_acceleration: 1.0
+
+    goal_tolerance: 0.02
+    yaw_tolerance: 0.03
+
+    # Tight: the final run must stay straight
+    max_cross_track_error: 0.08
+
+    # Docking is done backwards
+    reverse: true
+    slowdown_distance: 0.20
+
+  # --- Trajectory tracking, leg 1 (reaching the align point) ---
+  # Overrides of the block above: faster and more permissive,
+  # this leg absorbs the whole lateral offset.
+  align_tracking:
+
+    lookahead_distance: 0.30
+
+    max_linear_velocity: 0.15
+    max_lateral_velocity: 0.12
+    max_translation_speed: 0.18
+    max_angular_velocity: 0.6
+
+    goal_tolerance: 0.02
+    yaw_tolerance: 0.03
+
+    max_cross_track_error: 0.50
+
+    slowdown_distance: 0.30
+
+# =====================================================
+# Known docks
+#
+# dock_pose: [x, y, yaw] of the charger in frame_id.
+# The yaw points *outwards*, away from the charger,
+# towards the robot that comes to dock.
+#
+# moving_server does not use this: the alignment point
+# and the entry path are rebuilt at runtime from the
+# *detected* pose. It is kept here as the map of the
+# chargers, for the detector and for the caller that
+# sends the MOVE_TO_POINT goal to the pre-dock area.
+# =====================================================
+
+default_dock_id: dock_01
+
+docks:
+
+  dock_01:
+    frame_id: base_scan
+    dock_pose: [-1.0, 0.26, 0.35]
