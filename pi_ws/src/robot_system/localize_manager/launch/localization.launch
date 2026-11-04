@@ -25,9 +25,9 @@
 	</node>
 
   <!-- rviz -->
-  <!-- <group if="$(arg open_rviz)"> 
+  <group if="$(arg open_rviz)"> 
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-          args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
-  </group> -->
+          args="-d $(find localize_manager)/config/move_base.rviz"/>
+  </group>
 
 </launch>
