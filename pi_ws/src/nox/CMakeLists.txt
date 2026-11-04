@@ -201,6 +201,6 @@ catkin_package(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-catkin_install_python(PROGRAMS scripts/mpu6050.py scripts/test_odom.py scripts/pubVel.py
+catkin_install_python(PROGRAMS  scripts/pubVelEncoderDiff.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

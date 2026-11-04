@@ -1,0 +1,16 @@
+<launch>
+  <!-- Topic LaserScan có intensities -->
+  <arg name="scan_topic"   default="/scan"/>
+  <!-- Frame xuất PoseArray, để trống = frame của scan -->
+  <arg name="target_frame" default=""/>
+  <arg name="config"       default="$(find reflector_detector)/config/reflector_detector.yaml"/>
+  <arg name="output"       default="screen"/>
+
+  <node pkg="reflector_detector" type="reflector_detector_node"
+        name="reflector_detector" output="$(arg output)">
+    <rosparam file="$(arg config)" command="load"/>
+    <!-- đặt sau rosparam để override target_frame trong yaml -->
+    <param name="target_frame" value="$(arg target_frame)" unless="$(eval arg('target_frame') == '')"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+  </node>
+</launch>

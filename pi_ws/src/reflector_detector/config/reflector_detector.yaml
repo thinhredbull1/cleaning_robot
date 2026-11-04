@@ -1,0 +1,76 @@
+# Tham số cho reflector_detector (load vào private namespace của node)
+
+# Frame xuất PoseArray. Để "" => giữ nguyên frame của LaserScan.
+# (có thể override từ launch: target_frame:=base_link)
+target_frame: "base_link"
+tf_timeout: 0.1            # [s] thời gian chờ tf
+
+publish_debug: true        # publish ~filtered_points và ~markers
+
+# ---------------------------------------------------------------
+# Chế độ chạy
+#   continuous : detect liên tục từ lúc bật, publish ~reflector_poses
+#   service    : chỉ detect khi nhận request service (moving_server_msgs/DetectDock).
+#                Thu detection trong `detect_duration` giây, lấy median rồi trả về.
+#                Không thấy reflector trong khoảng đó => success=false.
+# ---------------------------------------------------------------
+mode: "service"
+
+service:
+  name: "/dock_detector/detect_dock"      # tên service (đặt "/detect_dock" nếu muốn tên global)
+  detect_duration: 1.5     # [s] cửa sổ thu mẫu (1-2s)
+  min_samples: 5           # số scan tối thiểu phải thấy reflector, ít hơn => success=false
+  max_std_xy: 0.05         # [m] độ lệch chuẩn vị trí tối đa giữa các mẫu, lớn hơn => coi là không ổn định (0 = tắt)
+
+# ---------------------------------------------------------------
+# Bước 1: lọc theo intensity (và range / góc)
+# ---------------------------------------------------------------
+filter:
+  intensity_min: 1000.0    # điểm có intensity < giá trị này bị loại (tuỳ lidar: SICK ~ 0-255 hoặc cao hơn, Hokuyo ~ vài trăm-vài nghìn)
+  intensity_max: 1.0e9
+  range_min: 0.10          # [m]
+  range_max: 5.0          # [m]
+  roi_angle_min_deg: -180.0  # vùng góc quan tâm; nếu min > max thì hiểu là vùng vắt qua ±180
+  roi_angle_max_deg: 180.0
+
+# ---------------------------------------------------------------
+# Bước 2: clustering (theo thứ tự tia, nhanh O(N))
+# ---------------------------------------------------------------
+cluster:
+  tolerance: 0.10          # [m] khoảng cách tối đa giữa 2 điểm liên tiếp trong 1 cluster
+  max_index_gap: 2         # số tia bị bỏ trống tối đa giữa 2 điểm cùng cluster
+  min_points: 3
+  max_points: 500
+
+# ---------------------------------------------------------------
+# Bước 3: lọc theo hình dạng (hình chữ nhật: length >= width)
+# Reflector dán phẳng nhìn từ 2D thường chỉ thấy 1 cạnh => width ~ 0
+# ---------------------------------------------------------------
+shape:
+  length_min: 0.08         # [m] cạnh dài
+  length_max: 0.5
+  width_min: 0.0           # [m] cạnh ngắn
+  width_max: 0.10
+
+# ---------------------------------------------------------------
+# Bước 4: tâm (x, y) và yaw
+# ---------------------------------------------------------------
+pose:
+  # min_area_rect: hình chữ nhật bao diện tích nhỏ nhất + tie-break "closeness"
+  #                (chịu được cả trường hợp thấy hình chữ L, 2 cạnh)
+  # pca          : trục chính PCA (nhanh, nhưng lệch khi thấy hình chữ L)
+  fit_method: "pca"
+  rect_angle_step_deg: 0.5 # độ phân giải quét góc của min_area_rect
+  closeness_d0: 0.02       # [m] ~ mức nhiễu đo của lidar, dùng cho tie-break
+  # major_axis    : yaw = hướng cạnh dài, chuẩn hoá về (-90°, 90°]
+  # facing_sensor : yaw = hướng pháp tuyến của reflector, chỉ về phía sensor (tiện cho docking)
+  yaw_mode: "facing_sensor"
+
+  # Offset áp lên pose CUỐI (sau median ở mode service; từng pose ở mode continuous).
+  # Biểu diễn trong hệ toạ độ của reflector: x dọc theo hướng yaw, y sang trái, yaw cộng thêm.
+  # Pose cuối = pose_reflector * offset. Vd. docking: yaw_mode "facing_sensor" (x hướng về sensor)
+  # và offset.x = 0.5 => dừng cách reflector 0.5 m phía trước mặt nó.
+  offset:
+    x: 0.25                 # [m]
+    y: 0.0                 # [m]
+    yaw_deg: 0.0           # [deg]
