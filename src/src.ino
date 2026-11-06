@@ -133,7 +133,7 @@ bool receive_uart()
       speed_desired[M_L_DOWN] = c.substring(ind_3 + 1).toInt();;
       // int left_sp = c.substring(0, index_now).toInt();
       // int right_sp = c.substring(index_now + 1).toInt();
-      // control_motor(0, left_sp);
+      // control_motor(left_sp, right_sp);
       // control_motor(1, right_sp);
       // Serial.print("speed:");
 
