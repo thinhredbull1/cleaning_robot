@@ -1,0 +1,9 @@
+rostopic pub -1 /esp32/command std_msgs/String "data: 'M1 MOVE 1000'"
+rostopic pub -1 /esp32/command std_msgs/String "data: 'ALL STOP'"
+rostopic pub -1 /esp32/command std_msgs/String "data: 'RESET'"
+rostopic pub -1 /esp32/command std_msgs/String "data: 'LED 1 GREEN 1'"
+rostopic pub -1 /esp32/command std_msgs/String "data: 'UV 1 1'"
+
+
+
+rostopic echo /esp32/sensor_data

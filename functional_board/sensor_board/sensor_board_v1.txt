@@ -1,0 +1,597 @@
+#include <Arduino.h>
+#include <DHT.h>
+
+// =================================================
+// 1. KHAI BAO CHAN ESP32
+// =================================================
+
+// 74HC595
+#define PIN_DATA    22
+#define PIN_CLK     23
+#define PIN_LATCH   21
+// Cam bien bui GP2Y1010AU0F
+#define PIN_DUST_ADC  34
+#define PIN_DUST_LED  33
+
+// Coi bao hieu
+#define PIN_BUZZER  25
+
+// Cam bien
+#define PIN_DHT     32
+#define PIN_MQ      39
+#define PIN_BAT     36
+
+#define DHT_TYPE DHT11
+DHT dht(PIN_DHT, DHT_TYPE);
+
+// He so chia ap BAT_V
+// R tren = 100K, R duoi = 22K
+#define BAT_RATIO 5.545
+
+// =================================================
+// 2. KHAI BAO CAC NGO RA 74HC595
+// =================================================
+
+// Quy uoc:
+// Bit 0 -> Q0 IC thu nhat
+// Bit 7 -> Q7 IC thu nhat
+// Bit 8 -> Q0 IC thu hai
+// ...
+// Bit 15 -> Q7 IC thu hai
+
+// LED 1
+#define LED1_R  0
+#define LED1_G  1
+
+// LED 2
+#define LED2_R  2
+#define LED2_G  3
+
+
+// LED 3
+#define LED3_R  4
+#define LED3_G  5
+
+// LED UV
+#define UV1     6
+#define UV2     7
+#define UV3     8
+
+// Khoa khay
+#define LOCK1   9
+#define LOCK2   10
+#define LOCK3   11
+
+// =================================================
+// 3. BIEN QUAN LY 74HC595
+// =================================================
+
+uint16_t outputState = 0;
+
+// =================================================
+// 4. GHI DU LIEU RA 2 IC 74HC595
+// =================================================
+
+void update595()
+{
+    digitalWrite(PIN_LATCH, LOW);
+
+    // Byte cao den IC thu hai
+    shiftOut(PIN_DATA, PIN_CLK, MSBFIRST,
+             (outputState >> 8) & 0xFF);
+
+    // Byte thap den IC thu nhat
+    shiftOut(PIN_DATA, PIN_CLK, MSBFIRST,
+             outputState & 0xFF);
+
+    digitalWrite(PIN_LATCH, HIGH);
+}
+
+// =================================================
+// 5. DIEU KHIEN MOT NGO RA
+// =================================================
+
+void setOutput(uint8_t pin, bool state)
+{
+    if (pin > 15) return;
+
+    if (state)
+        outputState |= (1U << pin);
+    else
+        outputState &= ~(1U << pin);
+
+    update595();
+}
+
+// Doc trang thai mot ngo ra
+bool getOutput(uint8_t pin)
+{
+    return (outputState >> pin) & 0x01;
+}
+
+// Tat tat ca ngo ra
+void allOutputOff()
+{
+    outputState = 0;
+    update595();
+}
+
+// =================================================
+// 6. DIEU KHIEN LED RGB
+// =================================================
+
+void controlLED(uint8_t led, String color, bool state)
+{
+    uint8_t pin;
+
+    color.toUpperCase();
+
+    if (led == 1)
+    {
+        if (color == "R") pin = LED1_R;
+        else if (color == "G") pin = LED1_G;
+        // else if (color == "B") pin = LED1_B;
+        else return;
+    }
+    else if (led == 2)
+    {
+        if (color == "R") pin = LED2_R;
+        else if (color == "G") pin = LED2_G;
+        // else if (color == "B") pin = LED2_B;
+        else return;
+    }
+    else if (led == 3)
+    {
+        if (color == "R") pin = LED3_R;
+        else if (color == "G") pin = LED3_G;
+        // else if (color == "B") pin = LED3_B;
+        else return;
+    }
+    else return;
+
+    setOutput(pin, state);
+}
+
+// =================================================
+// 7. DIEU KHIEN DEN UV
+// =================================================
+
+void controlUV(uint8_t led, bool state)
+{
+    switch (led)
+    {
+        case 1:
+            setOutput(UV1, state);
+            break;
+
+        case 2:
+            setOutput(UV2, state);
+            break;
+
+        case 3:
+            setOutput(UV3, state);
+            break;
+
+        default:
+            Serial.println("UV khong hop le!");
+            break;
+    }
+}
+
+// =================================================
+// 8. DIEU KHIEN KHOA KHAY
+// =================================================
+
+void controlLock(uint8_t lock, bool state)
+{
+    switch (lock)
+    {
+        case 1:
+            setOutput(LOCK1, state);
+            break;
+
+        case 2:
+            setOutput(LOCK2, state);
+            break;
+
+        case 3:
+            setOutput(LOCK3, state);
+            break;
+
+        default:
+            Serial.println("Khoa khay khong hop le!");
+            break;
+    }
+}
+
+// =================================================
+// 9. DIEU KHIEN COI
+// =================================================
+
+void controlBuzzer(bool state)
+{
+    digitalWrite(PIN_BUZZER, state ? HIGH : LOW);
+}
+
+// =================================================
+// 10. DOC CAM BIEN
+// =================================================
+// =================================================
+// DOC CAM BIEN BUI GP2Y1010AU0F
+// =================================================
+
+float readDustSensor()
+{
+    // Bat LED hong ngoai
+    digitalWrite(PIN_DUST_LED, LOW);
+
+    // Cho 280us de lay mau
+    delayMicroseconds(280);
+
+    // Doc ADC
+    int dustRaw = analogRead(PIN_DUST_ADC);
+
+    // Chuyen ADC sang dien ap
+    float dustVoltage = dustRaw * 3.3 / 4095.0;
+
+    // Tat LED hong ngoai
+    delayMicroseconds(40);
+    digitalWrite(PIN_DUST_LED, HIGH);
+
+    // Cho ket thuc chu ky 10ms
+    delayMicroseconds(9680);
+
+    // Tinh nong do bui (mg/m3)
+    float dustDensity = (dustVoltage - 0.6) * 0.17;
+
+    // Khong cho gia tri am
+
+
+    return dustDensity;
+}
+
+// =================================================
+// 10. DOC CAM BIEN
+// =================================================
+
+void readSensors()
+{
+    // DHT11
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+
+    // Cam bien MQ
+    int mqRaw = analogRead(PIN_MQ);
+
+    // Dien ap pin
+    int batRaw = analogRead(PIN_BAT);
+
+    float batADC = batRaw * 3.3 / 4095.0;
+    float batteryVoltage = batADC * BAT_RATIO;
+
+    // Cam bien bui GP2Y1010AU0F
+    int dustRaw;
+
+    digitalWrite(PIN_DUST_LED, LOW);
+    delayMicroseconds(280);
+
+    dustRaw = analogRead(PIN_DUST_ADC);
+
+    float dustADC = dustRaw * 3.3 / 4095.0;
+
+    // Neu co mach chia ap 10K/100K
+    // Dien ap thuc tai Vo = dustADC * 1.1
+    float dustVoltage = dustADC * 1.1;
+
+    delayMicroseconds(40);
+    digitalWrite(PIN_DUST_LED, HIGH);
+
+    delayMicroseconds(9680);
+
+    // Tinh nong do bui
+    float dustDensity =
+        (dustVoltage - 0.9) / 0.5 * 0.1;
+
+    if (dustDensity < 0)
+        dustDensity = 0;
+
+    Serial.println("\n========== SENSOR DATA ==========");
+
+    // DHT11
+    if (isnan(temperature) || isnan(humidity))
+    {
+        Serial.println("DHT11: Loi doc cam bien!");
+    }
+    else
+    {
+        Serial.printf("Nhiet do: %.1f C\n", temperature);
+        Serial.printf("Do am: %.1f %%\n", humidity);
+    }
+
+    // MQ
+    Serial.printf("MQ ADC: %d\n", mqRaw);
+
+    // Battery
+    Serial.printf("BAT ADC: %d\n", batRaw);
+    Serial.printf("Dien ap pin: %.2f V\n", batteryVoltage);
+
+    // Dust sensor
+    Serial.printf("DUST ADC: %d\n", dustRaw);
+    Serial.printf("DUST Voltage: %.3f V\n", dustVoltage);
+    Serial.printf("Nong do bui: %.3f mg/m3\n", dustDensity);
+
+    Serial.println("=================================\n");
+}
+
+
+// =================================================
+// 11. IN TRANG THAI NGO RA
+// =================================================
+
+void printStatus()
+{
+    Serial.println("\n========== OUTPUT STATUS ==========");
+
+    Serial.printf("LED1 R/G/B: %d %d %d\n",
+        getOutput(LED1_R),
+        getOutput(LED1_G));
+        // getOutput(LED1_B));
+
+    Serial.printf("LED2 R/G/B: %d %d %d\n",
+        getOutput(LED2_R),
+        getOutput(LED2_G));
+        // getOutput(LED2_B));
+
+    Serial.printf("LED3 R/G/B: %d %d %d\n",
+        getOutput(LED3_R),
+        getOutput(LED3_G));
+        // getOutput(LED3_B));
+
+    Serial.printf("UV1/UV2/UV3: %d %d %d\n",
+        getOutput(UV1),
+        getOutput(UV2),
+        getOutput(UV3));
+
+    Serial.printf("LOCK1/LOCK2/LOCK3: %d %d %d\n",
+        getOutput(LOCK1),
+        getOutput(LOCK2),
+        getOutput(LOCK3));
+
+    Serial.printf("BUZZER: %d\n", digitalRead(PIN_BUZZER));
+
+    Serial.println("===================================\n");
+}
+
+// =================================================
+// 12. HIEN THI LENH SERIAL
+// =================================================
+
+void printHelp()
+{
+    Serial.println("\n========== ESP32 CONTROL ==========");
+
+    Serial.println("LED <id> <color> <state>");
+    Serial.println("VD: LED 1 R 1");
+    Serial.println("VD: LED 2 G 0");
+
+    Serial.println("UV <id> <state>");
+    Serial.println("VD: UV 1 1");
+
+    Serial.println("LOCK <id> <state>");
+    Serial.println("VD: LOCK 2 1");
+
+    Serial.println("BUZZER <state>");
+    Serial.println("VD: BUZZER 1");
+
+    Serial.println("READ");
+    Serial.println("STATUS");
+    Serial.println("ALLOFF");
+    Serial.println("HELP");
+
+    Serial.println("===================================\n");
+}
+
+// =================================================
+// 13. DOC VA XU LY LENH SERIAL
+// =================================================
+
+void processSerial()
+{
+    if (!Serial.available()) return;
+
+    String command = Serial.readStringUntil('\n');
+
+    command.trim();
+
+    command.toUpperCase();
+
+    if (command.length() == 0) return;
+
+    char cmd[50];
+
+    command.toCharArray(cmd, sizeof(cmd));
+
+    char *token = strtok(cmd, " ");
+
+    if (token == NULL) return;
+
+    // -----------------------------
+    // LED
+    // LED 1 R 1
+    // -----------------------------
+
+    if (strcmp(token, "LED") == 0)
+    {
+        char *idStr = strtok(NULL, " ");
+        char *color = strtok(NULL, " ");
+        char *stateStr = strtok(NULL, " ");
+
+        if (!idStr || !color || !stateStr)
+        {
+            Serial.println("Syntax: LED <id> <R/G/B> <0/1>");
+            return;
+        }
+
+        int id = atoi(idStr);
+        int state = atoi(stateStr);
+
+        controlLED(id, String(color), state == 1);
+
+        Serial.println("LED command OK");
+    }
+
+    // -----------------------------
+    // UV
+    // UV 1 1
+    // -----------------------------
+
+    else if (strcmp(token, "UV") == 0)
+    {
+        char *idStr = strtok(NULL, " ");
+        char *stateStr = strtok(NULL, " ");
+
+        if (!idStr || !stateStr)
+        {
+            Serial.println("Syntax: UV <id> <0/1>");
+            return;
+        }
+
+        controlUV(atoi(idStr), atoi(stateStr) == 1);
+
+        Serial.println("UV command OK");
+    }
+
+    // -----------------------------
+    // LOCK
+    // LOCK 1 1
+    // -----------------------------
+
+    else if (strcmp(token, "LOCK") == 0)
+    {
+        char *idStr = strtok(NULL, " ");
+        char *stateStr = strtok(NULL, " ");
+
+        if (!idStr || !stateStr)
+        {
+            Serial.println("Syntax: LOCK <id> <0/1>");
+            return;
+        }
+
+        controlLock(atoi(idStr), atoi(stateStr) == 1);
+
+        Serial.println("LOCK command OK");
+    }
+
+    // -----------------------------
+    // BUZZER
+    // -----------------------------
+
+    else if (strcmp(token, "BUZZER") == 0)
+    {
+        char *stateStr = strtok(NULL, " ");
+
+        if (!stateStr)
+        {
+            Serial.println("Syntax: BUZZER <0/1>");
+            return;
+        }
+
+        controlBuzzer(atoi(stateStr) == 1);
+
+        Serial.println("BUZZER command OK");
+    }
+
+    // -----------------------------
+    // READ SENSOR
+    // -----------------------------
+
+    else if (strcmp(token, "READ") == 0)
+    {
+        readSensors();
+    }
+
+    // -----------------------------
+    // STATUS
+    // -----------------------------
+
+    else if (strcmp(token, "STATUS") == 0)
+    {
+        printStatus();
+    }
+
+    // -----------------------------
+    // TAT TAT CA
+    // -----------------------------
+
+    else if (strcmp(token, "ALLOFF") == 0)
+    {
+        allOutputOff();
+        controlBuzzer(false);
+
+        Serial.println("ALL OUTPUT OFF");
+    }
+
+    // -----------------------------
+    // HELP
+    // -----------------------------
+
+    else if (strcmp(token, "HELP") == 0)
+    {
+        printHelp();
+    }
+
+    else
+    {
+        Serial.println("Unknown command! Type HELP");
+    }
+}
+
+// =================================================
+// 14. SETUP
+// =================================================
+
+void setup()
+{
+    Serial.begin(57600);
+
+    Serial.setTimeout(100);
+
+    pinMode(PIN_DATA, OUTPUT);
+    pinMode(PIN_CLK, OUTPUT);
+    pinMode(PIN_LATCH, OUTPUT);
+
+    pinMode(PIN_BUZZER, OUTPUT);
+
+    pinMode(PIN_MQ, INPUT);
+    pinMode(PIN_BAT, INPUT);
+    pinMode(PIN_DUST_ADC, INPUT);
+
+// Dieu khien LED cam bien bui
+pinMode(PIN_DUST_LED, OUTPUT_OPEN_DRAIN);
+
+digitalWrite(PIN_DUST_LED, HIGH);
+
+    digitalWrite(PIN_BUZZER, LOW);
+
+    digitalWrite(PIN_LATCH, LOW);
+
+    analogReadResolution(12);
+
+    dht.begin();
+
+    // Khoi tao 2 IC 74HC595
+    allOutputOff();
+
+    Serial.println("\nESP32 SYSTEM STARTED!");
+
+    printHelp();
+}
+
+// =================================================
+// 15. LOOP
+// =================================================
+
+void loop()
+{
+    processSerial();
+}

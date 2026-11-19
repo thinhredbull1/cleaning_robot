@@ -1,0 +1,687 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <DHT.h>
+
+// =================================================
+// 1. KHAI BAO CHAN
+// =================================================
+
+#define PIN_DATA    22
+#define PIN_CLK     23
+#define PIN_LATCH   21
+
+#define PIN_BUZZER  25
+
+#define PIN_DHT     32
+#define PIN_MQ      39
+#define PIN_BAT     36
+
+// Cam bien bui GP2Y1010AU0F
+#define PIN_DUST_ADC  34
+#define PIN_DUST_LED  33
+
+#define DHT_TYPE DHT11
+DHT dht(PIN_DHT, DHT_TYPE);
+
+#define BAT_RATIO 5.545
+
+// He so bu dien ap cam bien bui
+// Mach chia ap: R tren = 10K, R duoi = 100K
+#define DUST_DIVIDER_RATIO 1.1
+
+// =================================================
+// 2. WIFI ACCESS POINT
+// =================================================
+
+const char* AP_SSID = "ESP32_MASTER";
+const char* AP_PASS = "12345678";
+
+WiFiServer server(5000);
+WiFiClient remoteClient;
+
+// =================================================
+// 3. KHAI BAO NGO RA 74HC595
+// =================================================
+
+#define LED1_R  0
+#define LED1_G  1
+
+#define LED2_R  2
+#define LED2_G  3
+
+#define LED3_R  4
+#define LED3_G  5
+
+#define UV1     6
+#define UV2     7
+#define UV3     8
+
+#define LOCK1   9
+#define LOCK2   10
+#define LOCK3   11
+
+uint16_t outputState = 0;
+
+// =================================================
+// 4. GHI 74HC595
+// =================================================
+
+void update595()
+{
+    digitalWrite(PIN_LATCH, LOW);
+
+    shiftOut(PIN_DATA, PIN_CLK, MSBFIRST,
+             (outputState >> 8) & 0xFF);
+
+    shiftOut(PIN_DATA, PIN_CLK, MSBFIRST,
+             outputState & 0xFF);
+
+    digitalWrite(PIN_LATCH, HIGH);
+}
+
+void setOutput(uint8_t pin, bool state)
+{
+    if (pin > 15) return;
+
+    uint16_t mask = (uint16_t)1 << pin;
+
+    if (state)
+    {
+        outputState |= mask;
+    }
+    else
+    {
+        outputState &= ~mask;
+    }
+
+    update595();
+
+    Serial.printf(
+        "OUTPUT BIT %d = %d | STATE = 0x%04X\n",
+        pin,
+        state,
+        outputState
+    );
+}
+
+bool getOutput(uint8_t pin)
+{
+    return (outputState >> pin) & 0x01;
+}
+
+void allOutputOff()
+{
+    outputState = 0;
+    update595();
+}
+
+// =================================================
+// 5. DIEU KHIEN LED RGB
+// =================================================
+
+void controlLED(uint8_t led, String color, bool state)
+{
+    color.toUpperCase();
+
+    uint8_t redPin, greenPin;
+
+    switch (led)
+    {
+        case 1:
+            redPin = LED1_R;
+            greenPin = LED1_G;
+            break;
+
+        case 2:
+            redPin = LED2_R;
+            greenPin = LED2_G;
+            break;
+
+        case 3:
+            redPin = LED3_R;
+            greenPin = LED3_G;
+            break;
+
+        default:
+            Serial.println("LED ID khong hop le!");
+            return;
+    }
+
+    if (color == "R" || color == "RED")
+    {
+        if (state)
+        {
+            setOutput(greenPin, false);
+            setOutput(redPin, true);
+        }
+        else
+        {
+            setOutput(redPin, false);
+        }
+    }
+    else if (color == "G" || color == "GREEN")
+    {
+        if (state)
+        {
+            setOutput(redPin, false);
+            setOutput(greenPin, true);
+        }
+        else
+        {
+            setOutput(greenPin, false);
+        }
+    }
+    else
+    {
+        Serial.println("Mau LED khong hop le!");
+    }
+}
+
+// =================================================
+// 6. DIEU KHIEN UV
+// =================================================
+
+void controlUV(uint8_t led, bool state)
+{
+    switch (led)
+    {
+        case 1: setOutput(UV1, state); break;
+        case 2: setOutput(UV2, state); break;
+        case 3: setOutput(UV3, state); break;
+
+        default:
+            Serial.println("UV khong hop le!");
+            break;
+    }
+}
+
+// =================================================
+// 7. DIEU KHIEN LOCK
+// =================================================
+
+void controlLock(uint8_t lock, bool state)
+{
+    switch (lock)
+    {
+        case 1: setOutput(LOCK1, state); break;
+        case 2: setOutput(LOCK2, state); break;
+        case 3: setOutput(LOCK3, state); break;
+
+        default:
+            Serial.println("LOCK khong hop le!");
+            break;
+    }
+}
+
+// =================================================
+// 8. BUZZER
+// =================================================
+
+void controlBuzzer(bool state)
+{
+    digitalWrite(PIN_BUZZER, state ? HIGH : LOW);
+}
+
+// =================================================
+// 9. DOC CAM BIEN BUI GP2Y1010AU0F
+// =================================================
+
+int readDustRaw()
+{
+    // Bat LED hong ngoai
+    digitalWrite(PIN_DUST_LED, LOW);
+
+    // Cho 280 us
+    delayMicroseconds(280);
+
+    // Doc ADC
+    int dustRaw = analogRead(PIN_DUST_ADC);
+
+    // Ket thuc xung LED
+    delayMicroseconds(40);
+
+    // Tat LED hong ngoai
+    digitalWrite(PIN_DUST_LED, HIGH);
+
+    // Cho ket thuc chu ky 10ms
+    delayMicroseconds(9680);
+
+    return dustRaw;
+}
+
+// =================================================
+// 10. DOC CAM BIEN
+// =================================================
+
+struct SensorData
+{
+    float temperature;
+    float humidity;
+
+    int mq;
+
+    int batRaw;
+    float batteryVoltage;
+
+    // Cam bien bui
+    int dustRaw;
+    float dustVoltage;
+    float dustDensity;
+};
+
+SensorData sensor;
+
+void readSensors()
+{
+    // DHT11
+    sensor.temperature = dht.readTemperature();
+    sensor.humidity = dht.readHumidity();
+
+    // Cam bien MQ
+    sensor.mq = analogRead(PIN_MQ);
+
+    // Dien ap pin
+    sensor.batRaw = analogRead(PIN_BAT);
+
+    float batADC = sensor.batRaw * 3.3 / 4095.0;
+
+    sensor.batteryVoltage = batADC * BAT_RATIO;
+
+    // ---------------------------------
+    // CAM BIEN BUI GP2Y1010AU0F
+    // ---------------------------------
+
+    sensor.dustRaw = readDustRaw();
+
+    // Dien ap tai ADC
+    float dustADC = sensor.dustRaw * 3.3 / 4095.0;
+
+    // Khoi phuc dien ap truoc mach chia ap
+    sensor.dustVoltage =
+        dustADC * DUST_DIVIDER_RATIO;
+
+    // Tinh nong do bui (mg/m3)
+    sensor.dustDensity =
+        (sensor.dustVoltage - 0.9) / 0.5 * 0.1;
+
+    if (sensor.dustDensity < 0)
+    {
+        sensor.dustDensity = 0;
+    }
+}
+
+// =================================================
+// 11. GUI SENSOR QUA WIFI
+// =================================================
+
+unsigned long lastSensorSend = 0;
+
+void sendSensorWiFi()
+{
+    if (!remoteClient || !remoteClient.connected())
+        return;
+
+    if (millis() - lastSensorSend < 2000)
+        return;
+
+    lastSensorSend = millis();
+
+    readSensors();
+
+    char data[200];
+
+    snprintf(data, sizeof(data),
+        "SENSOR,%.1f,%.1f,%d,%d,%.2f,%d,%.3f,%.3f\n",
+
+        sensor.temperature,
+        sensor.humidity,
+        sensor.mq,
+        sensor.batRaw,
+        sensor.batteryVoltage,
+
+        sensor.dustRaw,
+        sensor.dustVoltage,
+        sensor.dustDensity
+    );
+
+    remoteClient.print(data);
+}
+
+// =================================================
+// 12. IN SENSOR
+// =================================================
+
+void printSensors()
+{
+    readSensors();
+
+    Serial.println("\n======= SENSOR DATA =======");
+
+    // DHT11
+    if (isnan(sensor.temperature) ||
+        isnan(sensor.humidity))
+    {
+        Serial.println("DHT11: Loi doc!");
+    }
+    else
+    {
+        Serial.printf("Temperature: %.1f C\n",
+                      sensor.temperature);
+
+        Serial.printf("Humidity: %.1f %%\n",
+                      sensor.humidity);
+    }
+
+    // MQ
+    Serial.printf("MQ ADC: %d\n", sensor.mq);
+
+    // Battery
+    Serial.printf("BAT ADC: %d\n", sensor.batRaw);
+
+    Serial.printf("Battery: %.2f V\n",
+                  sensor.batteryVoltage);
+
+    // Dust
+    Serial.println("----- DUST SENSOR -----");
+
+    Serial.printf("Dust ADC: %d\n",
+                  sensor.dustRaw);
+
+    Serial.printf("Dust Voltage: %.3f V\n",
+                  sensor.dustVoltage);
+
+    Serial.printf("Dust Density: %.3f mg/m3\n",
+                  sensor.dustDensity);
+
+    Serial.println("===========================\n");
+}
+
+// =================================================
+// 13. STATUS
+// =================================================
+
+void printStatus()
+{
+    Serial.println("\n======= OUTPUT STATUS =======");
+
+    Serial.printf("LED1 R/G: %d %d\n",
+        getOutput(LED1_R), getOutput(LED1_G));
+
+    Serial.printf("LED2 R/G: %d %d\n",
+        getOutput(LED2_R), getOutput(LED2_G));
+
+    Serial.printf("LED3 R/G: %d %d\n",
+        getOutput(LED3_R), getOutput(LED3_G));
+
+    Serial.printf("UV1/2/3: %d %d %d\n",
+        getOutput(UV1),
+        getOutput(UV2),
+        getOutput(UV3));
+
+    Serial.printf("LOCK1/2/3: %d %d %d\n",
+        getOutput(LOCK1),
+        getOutput(LOCK2),
+        getOutput(LOCK3));
+
+    Serial.printf("BUZZER: %d\n",
+        digitalRead(PIN_BUZZER));
+
+    Serial.println("=============================\n");
+}
+
+// =================================================
+// 14. XU LY LENH CHUNG
+// =================================================
+
+void processCommand(String command)
+{
+    command.trim();
+    command.toUpperCase();
+
+    if (command.length() == 0) return;
+
+    char cmd[100];
+
+    command.toCharArray(cmd, sizeof(cmd));
+
+    char* token = strtok(cmd, " ");
+
+    if (!token) return;
+
+    // LED
+    if (strcmp(token, "LED") == 0)
+    {
+        char* id = strtok(NULL, " ");
+        char* color = strtok(NULL, " ");
+        char* state = strtok(NULL, " ");
+
+        if (!id || !color || !state)
+        {
+            Serial.println("LED <id> <RED/GREEN> <0/1>");
+            return;
+        }
+
+        controlLED(
+            atoi(id),
+            String(color),
+            atoi(state) == 1
+        );
+
+        Serial.println("LED command OK");
+    }
+
+    // UV
+    else if (strcmp(token, "UV") == 0)
+    {
+        char* id = strtok(NULL, " ");
+        char* state = strtok(NULL, " ");
+
+        if (!id || !state)
+        {
+            Serial.println("UV <id> <state>");
+            return;
+        }
+
+        controlUV(atoi(id), atoi(state) == 1);
+
+        Serial.println("UV command OK");
+    }
+
+    // LOCK
+    else if (strcmp(token, "LOCK") == 0)
+    {
+        char* id = strtok(NULL, " ");
+        char* state = strtok(NULL, " ");
+
+        if (!id || !state)
+        {
+            Serial.println("LOCK <id> <state>");
+            return;
+        }
+
+        controlLock(atoi(id), atoi(state) == 1);
+
+        Serial.println("LOCK command OK");
+    }
+
+    // BUZZER
+    else if (strcmp(token, "BUZZER") == 0)
+    {
+        char* state = strtok(NULL, " ");
+
+        if (!state) return;
+
+        controlBuzzer(atoi(state) == 1);
+
+        Serial.println("BUZZER command OK");
+    }
+
+    // READ
+    else if (strcmp(token, "READ") == 0)
+    {
+        printSensors();
+    }
+
+    // STATUS
+    else if (strcmp(token, "STATUS") == 0)
+    {
+        printStatus();
+    }
+
+    // ALLOFF
+    else if (strcmp(token, "ALLOFF") == 0)
+    {
+        allOutputOff();
+        controlBuzzer(false);
+
+        Serial.println("ALL OUTPUT OFF");
+    }
+
+    // HELP
+    else if (strcmp(token, "HELP") == 0)
+    {
+        Serial.println("\n===== COMMANDS =====");
+        Serial.println("LED <id> <RED/GREEN> <0/1>");
+        Serial.println("UV <id> <0/1>");
+        Serial.println("LOCK <id> <0/1>");
+        Serial.println("BUZZER <0/1>");
+        Serial.println("READ");
+        Serial.println("STATUS");
+        Serial.println("ALLOFF");
+        Serial.println("HELP");
+        Serial.println("====================");
+    }
+
+    else
+    {
+        Serial.println("Unknown command!");
+    }
+}
+
+// =================================================
+// 15. DOC LENH SERIAL
+// =================================================
+
+void processSerial()
+{
+    if (!Serial.available()) return;
+
+    String command = Serial.readStringUntil('\n');
+
+    processCommand(command);
+}
+
+// =================================================
+// 16. NHAN LENH WIFI
+// =================================================
+
+void processWiFi()
+{
+    if (!remoteClient || !remoteClient.connected())
+    {
+        WiFiClient newClient = server.available();
+
+        if (newClient)
+        {
+            remoteClient = newClient;
+
+            Serial.println("ESP32 SLAVE CONNECTED!");
+        }
+    }
+
+    if (remoteClient && remoteClient.connected())
+    {
+        while (remoteClient.available())
+        {
+            String command =
+                remoteClient.readStringUntil('\n');
+
+            command.trim();
+
+            if (command.length() > 0)
+            {
+                Serial.print("[WIFI CMD] ");
+                Serial.println(command);
+
+                processCommand(command);
+            }
+        }
+    }
+}
+
+// =================================================
+// 17. SETUP
+// =================================================
+
+void setup()
+{
+    Serial.begin(57600);
+    Serial.setTimeout(100);
+
+    pinMode(PIN_DATA, OUTPUT);
+    pinMode(PIN_CLK, OUTPUT);
+    pinMode(PIN_LATCH, OUTPUT);
+
+    pinMode(PIN_BUZZER, OUTPUT);
+
+    pinMode(PIN_MQ, INPUT);
+    pinMode(PIN_BAT, INPUT);
+
+    // Cam bien bui
+    pinMode(PIN_DUST_ADC, INPUT);
+
+    // Dieu khien LED hong ngoai
+    pinMode(PIN_DUST_LED, OUTPUT_OPEN_DRAIN);
+
+    digitalWrite(PIN_DUST_LED, HIGH);
+
+    // digitalWrite(PIN_BUZZER, LOW);
+
+    analogReadResolution(12);
+
+    dht.begin();
+
+    // allOutputOff();
+
+    // WIFI ACCESS POINT
+    delay(3000);
+    WiFi.mode(WIFI_AP);
+
+    WiFi.softAP(AP_SSID, AP_PASS);
+    // delay(2000);
+    server.begin();
+
+    Serial.println("\nESP32 MASTER STARTED!");
+
+    Serial.print("SSID: ");
+    Serial.println(AP_SSID);
+
+    Serial.print("PASSWORD: ");
+    Serial.println(AP_PASS);
+
+    Serial.print("IP: ");
+    Serial.println(WiFi.softAPIP());
+
+    Serial.println("TCP PORT: 5000");
+
+    Serial.println("Dust sensor: GP2Y1010AU0F");
+
+    Serial.println("Dust ADC: GPIO34");
+    Serial.println("Dust LED: GPIO33");
+
+    Serial.println("Type HELP for commands");
+    // delay(1000);
+}
+
+// =================================================
+// 18. LOOP
+// =================================================
+
+void loop()
+{
+    processSerial();
+
+    processWiFi();
+
+    sendSensorWiFi();
+}

@@ -1,0 +1,548 @@
+#include <AccelStepper.h>
+
+// ==================================================
+// 1. KHAI BAO CHAN GPIO
+// ==================================================
+
+// Motor 1
+#define STEP1 33
+#define DIR1  32
+
+// Motor 2
+#define STEP2 26
+#define DIR2  25
+
+// Motor 3
+#define STEP3 13
+#define DIR3  27
+
+// Analog button
+#define SW_PIN 36
+
+// Limit switches
+#define CTHT1 39  //39
+#define CTHT2 34 // 34
+#define CTHT3 35 //35
+
+// ==================================================
+// 2. KHOI TAO ACCELSTEPPER
+// ==================================================
+
+#define DRIVER_TYPE 1
+
+AccelStepper motor1(DRIVER_TYPE, STEP1, DIR1);
+AccelStepper motor2(DRIVER_TYPE, STEP2, DIR2);
+AccelStepper motor3(DRIVER_TYPE, STEP3, DIR3);
+
+AccelStepper* motors[3] = {
+  &motor1,
+  &motor2,
+  &motor3
+};
+
+// ==================================================
+// 3. THONG SO DONG CO
+// ==================================================
+
+float motorSpeed[3] = {
+  6000, 6000, 6000
+};
+
+float motorAccel[3] = {
+  4000, 4000, 4000
+};
+
+// Đảo chiều logic nếu động cơ quay ngược mong muốn
+bool invertDir[3] = {
+  false, false, false
+};
+
+// Trạng thái công tắc hành trình
+bool limitState[3] = {
+  false, false, false
+};
+
+// ==================================================
+// 4. KHOI TAO
+// ==================================================
+
+void setup() {
+
+  Serial.begin(57600);
+
+  // Analog button
+  pinMode(SW_PIN, INPUT);
+
+  // Limit switches
+  pinMode(CTHT1, INPUT);
+  pinMode(CTHT2, INPUT);
+  pinMode(CTHT3, INPUT);
+
+  // Cau hinh tung dong co
+  for (int i = 0; i < 3; i++) {
+
+    motors[i]->setMaxSpeed(motorSpeed[i]);
+
+    motors[i]->setAcceleration(motorAccel[i]);
+
+    motors[i]->setPinsInverted(invertDir[i]);
+
+    motors[i]->setMinPulseWidth(2);
+  }
+
+  analogReadResolution(12);
+
+  Serial.println();
+  Serial.println("================================");
+  Serial.println(" ESP32 - 3 STEPPER MOTOR CONTROL");
+  Serial.println("================================");
+
+  Serial.println("Type HELP to see commands");
+}
+
+// ==================================================
+// 5. HAM CHAY MOTOR LIEN TUC
+// ==================================================
+
+void updateMotors() {
+
+  for (int i = 0; i < 3; i++) {
+
+
+
+    // Chay khong chan chuong trinh
+    motors[i]->run();
+  }
+}
+
+// ==================================================
+// 6. DOC CONG TAC HANH TRINH
+// ==================================================
+
+int limitPins[3] = {
+  CTHT1,
+  CTHT2,
+  CTHT3
+};
+
+
+
+// ==================================================
+// 7. HAM DI CHUYEN THEO SO BUOC
+// ==================================================
+
+void moveMotor(int index, long steps) {
+
+  if (index < 0 || index >= 3) return;
+
+
+  motors[index]->move(steps);
+
+  Serial.printf(
+    "M%d MOVE: %ld steps\n",
+    index + 1,
+    steps
+  );
+}
+
+// ==================================================
+// 8. HAM CAU HINH TOC DO
+// ==================================================
+
+void setMotorSpeed(int index, float speed) {
+
+  if (index < 0 || index >= 3) return;
+
+  if (speed <= 0 || speed > 3000) return;
+
+  motorSpeed[index] = speed;
+
+  motors[index]->setMaxSpeed(speed);
+
+  Serial.printf(
+    "M%d SPEED = %.1f steps/s\n",
+    index + 1,
+    speed
+  );
+}
+
+// ==================================================
+// 9. HAM CAU HINH GIA TOC
+// ==================================================
+
+void setMotorAcceleration(int index, float accel) {
+
+  if (index < 0 || index >= 3) return;
+
+  if (accel <= 0 || accel > 5000) return;
+
+  motorAccel[index] = accel;
+
+  motors[index]->setAcceleration(accel);
+
+  Serial.printf(
+    "M%d ACCEL = %.1f steps/s^2\n",
+    index + 1,
+    accel
+  );
+}
+
+// ==================================================
+// 10. HAM DUNG MOTOR
+// ==================================================
+
+void stopMotor(int index) {
+
+  if (index < 0 || index >= 3) return;
+
+  // Dung co giam toc
+  motors[index]->stop();
+
+  Serial.printf("M%d STOPPING\n", index + 1);
+}
+
+// Dung tat ca dong co
+void stopAllMotors() {
+
+  for (int i = 0; i < 3; i++) {
+
+    motors[i]->stop();
+  }
+
+  Serial.println("ALL MOTORS STOPPING");
+}
+
+// ==================================================
+// 11. HAM DAO CHIEU
+// ==================================================
+
+void reverseMotor(int index) {
+
+  if (index < 0 || index >= 3) return;
+
+  // Dao trang thai DIR
+  invertDir[index] = !invertDir[index];
+
+  motors[index]->setPinsInverted(invertDir[index]);
+
+  Serial.printf(
+    "M%d DIRECTION INVERTED: %s\n",
+    index + 1,
+    invertDir[index] ? "YES" : "NO"
+  );
+}
+
+// ==================================================
+// 12. DOC NUT NHAN ANALOG
+// ==================================================
+
+int readAnalogButton(float adcAverage) {
+
+  // int adcValue = analogRead(SW_PIN);
+  // Serial.println(adcAverage);
+  /*
+    Nguong tham khao theo mang dien tro:
+
+    R2 = 2K
+    R3 = 4K
+    R4 = 6K
+    R1 = 10K
+
+    Gia tri ADC thuc te can hieu chinh.
+  */
+
+  if (adcAverage > 3000 && adcAverage < 3700) {
+    return 1; ///3195 upper
+  }
+
+  if (adcAverage > 1600 && adcAverage <= 2000) {
+    return 2; //2539 middle
+  }
+
+  if (adcAverage > 2200 && adcAverage <= 2450) { 
+    return 3; //2395 bottom
+  }
+
+  return 0;
+}
+
+// ==================================================
+// 13. XU LY NUT NHAN
+// ==================================================
+
+void onButtonPressed(int button) {
+
+  switch (button) {
+
+    case 1:
+
+      Serial.println("BUTTON 1 PRESSED");
+
+      // Them lenh dieu khien tai day
+
+      break;
+
+    case 2:
+
+      Serial.println("BUTTON 2 PRESSED");
+
+      // Them lenh dieu khien tai day
+
+      break;
+
+    case 3:
+
+      Serial.println("BUTTON 3 PRESSED");
+
+      // Them lenh dieu khien tai day
+
+      break;
+  }
+}
+
+
+void updateButtons()
+{
+    static int adcSum = 0;
+    static int sampleCount = 0;
+
+    static unsigned long lastSample = 0;
+
+    static int lastButton = 0;
+
+    // Lấy mẫu ADC mỗi 50ms
+    if (millis() - lastSample >= 25)
+    {
+        lastSample = millis();
+        
+        int adcNew = analogRead(SW_PIN);
+        if(adcNew >100)
+        {
+          sampleCount++;
+          adcSum+=adcNew;
+          int sample=10;
+          // Đủ 10 mẫu thì tính trung bình
+          if (sampleCount >= sample)
+          {
+              int adcAverage = adcSum / sample;
+
+              int currentButton = readAnalogButton(adcAverage);
+
+              // Chỉ xử lý khi xác định được nút nhấn mới
+              if (currentButton != 0 && currentButton != lastButton)
+              {
+                  onButtonPressed(currentButton);
+              }
+
+              lastButton = currentButton;
+
+              // Reset để chuẩn bị lấy mẫu tiếp
+              adcSum = 0;
+              sampleCount = 0;
+          }
+        }
+        else{
+          lastButton =0;
+            adcSum = 0;
+              sampleCount = 0;
+          }
+    }
+
+    // Đọc công tắc hành trình mỗi 150ms
+    static unsigned long lastLimitRead = 0;
+
+    if (millis() - lastLimitRead >= 150)
+    {
+        lastLimitRead = millis();
+
+        limitState[0] = digitalRead(CTHT1);
+        limitState[1] = digitalRead(CTHT2);
+        limitState[2] = digitalRead(CTHT3);
+    }
+}
+
+
+
+// ==================================================
+// 14. KIEM TRA TRANG THAI MOTOR
+// ==================================================
+
+void printMotorStatus(int index) {
+
+  Serial.println("-------------------------");
+
+  Serial.printf("MOTOR %d\n", index + 1);
+
+  // Serial.printf(
+  //   "Position: %ld\n",
+  //   motors[index]->currentPosition()
+  // );
+
+  // Serial.printf(
+  //   "Target: %ld\n",
+  //   motors[index]->targetPosition()
+  // );
+
+  // Serial.printf(
+  //   "Speed: %.2f steps/s\n",
+  //   motors[index]->speed()
+  // );
+
+  // Serial.printf(
+  //   "Distance: %ld\n",
+  //   motors[index]->distanceToGo()
+  // );
+
+  Serial.printf(
+    "Limit: %s\n",
+    limitState[index] ? "ACTIVE" : "NORMAL"
+  );
+
+  Serial.println("-------------------------");
+}
+
+void printAllStatus() {
+
+  for (int i = 0; i < 3; i++) {
+
+    printMotorStatus(i);
+    
+  }
+}
+
+// ==================================================
+// 15. SERIAL COMMAND
+// ==================================================
+
+void serialControl() {
+
+  if (!Serial.available()) return;
+
+  String cmd = Serial.readStringUntil('\n');
+
+  cmd.trim();
+
+  cmd.toUpperCase();
+
+  if (cmd == "HELP") {
+
+    Serial.println("COMMAND LIST:");
+
+    Serial.println("M1 MOVE 1000");
+    Serial.println("M1 SPEED 500");
+    Serial.println("M1 ACCEL 300");
+    Serial.println("M1 STOP");
+    Serial.println("M1 DIR");
+    Serial.println("M1 STATUS");
+
+    Serial.println("ALL STOP");
+    Serial.println("STATUS");
+
+    return;
+  }
+
+  if (cmd == "ALL STOP") {
+
+    stopAllMotors();
+
+    return;
+  }
+
+  if (cmd == "STATUS") {
+
+    printAllStatus();
+
+    return;
+  }
+
+  // Phan tich lenh M1, M2, M3
+  int index = -1;
+
+  if (cmd.startsWith("M1")) index = 0;
+  if (cmd.startsWith("M2")) index = 1;
+  if (cmd.startsWith("M3")) index = 2;
+
+  if (index < 0) {
+
+    Serial.println("INVALID MOTOR");
+
+    return;
+  }
+
+  // Tach noi dung sau M1/M2/M3
+  String command = cmd.substring(2);
+
+  command.trim();
+
+  // MOVE
+  if (command.startsWith("MOVE")) {
+
+    long steps = command.substring(4).toInt();
+
+    moveMotor(index, steps);
+
+  }
+
+  // SPEED
+  else if (command.startsWith("SPEED")) {
+
+    float speed = command.substring(5).toFloat();
+
+    setMotorSpeed(index, speed);
+
+  }
+
+  // ACCEL
+  else if (command.startsWith("ACCEL")) {
+
+    float accel = command.substring(5).toFloat();
+
+    setMotorAcceleration(index, accel);
+
+  }
+
+  // STOP
+  else if (command.startsWith("STOP")) {
+
+    stopMotor(index);
+
+  }
+
+  // DIR
+  else if (command.startsWith("DIR")) {
+
+    reverseMotor(index);
+
+  }
+
+  // STATUS
+  else if (command.startsWith("STATUS")) {
+
+    printMotorStatus(index);
+
+  }
+
+  else {
+
+    Serial.println("UNKNOWN COMMAND");
+  }
+}
+
+// ==================================================
+// 16. LOOP
+// ==================================================
+
+void loop() {
+
+  // Chay 3 dong co
+  updateMotors();
+
+  // Doc nut nhan analog
+  updateButtons();
+
+  // Doc Serial
+  serialControl();
+  static unsigned long time_=millis();
+
+
+}
