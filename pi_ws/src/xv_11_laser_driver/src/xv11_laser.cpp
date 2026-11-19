@@ -33,6 +33,7 @@
  *********************************************************************/
 
 #include <xv_11_laser_driver/xv11_laser.h>
+#include <cmath>
 
 namespace xv_11_laser_driver
 {
@@ -45,6 +46,50 @@ namespace xv_11_laser_driver
 		const char start[] = "startlds$";
 		boost::asio::write(serial_, boost::asio::buffer(start, sizeof(start) - 1));
 	}
+	void XV11Laser::setAngleFilter(
+    bool enable,
+    const std::vector<std::pair<float, float>>& ranges)
+	{
+		angle_filter_enable_ = enable;
+		angle_filter_ranges_ = ranges;
+	}
+
+	bool XV11Laser::isAngleFiltered(float angle)
+	{
+		if (!angle_filter_enable_)
+			return false;
+
+		// Normalize angle to [0, 360)
+		angle = std::fmod(angle, 360.0f);
+
+		if (angle < 0)
+			angle += 360.0f;
+
+		for (const auto& range : angle_filter_ranges_)
+		{
+			float start = range.first;
+			float end = range.second;
+
+			start = std::fmod(start + 360.0f, 360.0f);
+			end = std::fmod(end + 360.0f, 360.0f);
+
+			// Normal range
+			if (start <= end)
+			{
+				if (angle >= start && angle <= end)
+					return true;
+			}
+			// Range crosses 360 -> 0
+			else
+			{
+				if (angle >= start || angle <= end)
+					return true;
+			}
+		}
+
+		return false;
+	}
+
 	void XV11Laser::end()
 	{
 		char dola = '$';
@@ -123,8 +168,20 @@ namespace xv_11_laser_driver
 							// Last two bytes represent the uncertanty or intensity, might also be pixel area of target...
 							uint16_t intensity = (byte3 << 8) + byte2;
 
-							scan->ranges.push_back(range / 1000.0);
+							// scan->ranges.push_back(range / 1000.0);
+							// scan->intensities.push_back(intensity);
+							float angle = (float)(i / 4);
+
+							float range_float = range / 1000.0;
+
+							if (isAngleFiltered(angle))
+							{
+								range_float = std::numeric_limits<float>::infinity();
+							}
+
+							scan->ranges.push_back(range_float);
 							scan->intensities.push_back(intensity);
+
 						}
 					}
 				}
@@ -193,11 +250,32 @@ namespace xv_11_laser_driver
 									uint16_t range = ((byte1 & 0x3F) << 8) + byte0;
 									// Last two bytes represent the uncertanty or intensity, might also be pixel area of target...
 									uint16_t intensity = (byte3 << 8) + byte2;
+									// float range_float = (float)range / 1000.0;
+									// if (intensity <= 5 || range_float > range_max || range_float <= range_min)
+									// 	range_float = std::numeric_limits<float>::infinity();
+									// scan->ranges[index] = range_float;
+									// scan->intensities[index] = intensity;
 									float range_float = (float)range / 1000.0;
-									if (intensity <= 5 || range_float > range_max || range_float <= range_min)
+
+									// Existing range filter
+									if (intensity <= 5 ||
+										range_float > range_max ||
+										range_float <= range_min)
+									{
 										range_float = std::numeric_limits<float>::infinity();
+									}
+
+									// Angle filter
+									float angle = (float)index;
+
+									if (isAngleFiltered(angle))
+									{
+										range_float = std::numeric_limits<float>::infinity();
+									}
+
 									scan->ranges[index] = range_float;
 									scan->intensities[index] = intensity;
+
 								}
 							}
 						}

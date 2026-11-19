@@ -37,6 +37,10 @@
 #include <boost/asio.hpp>
 #include <xv_11_laser_driver/xv11_laser.h>
 #include <std_msgs/UInt16.h>
+#include <vector>
+#include <utility>
+#include <XmlRpcValue.h>
+
 xv_11_laser_driver::XV11Laser* g_laser = nullptr;
 
 // Signal handler for Ctrl+C (SIGINT)
@@ -67,11 +71,43 @@ int main(int argc, char **argv)
   priv_nh.param("baud_rate", baud_rate, 115200);
   priv_nh.param("frame_id", frame_id, std::string("neato_laser"));
   priv_nh.param("firmware_version", firmware_number, 2);
+  bool angle_filter_enable;
+
+  priv_nh.param(
+      "angle_filter_enable",
+      angle_filter_enable,
+      false
+  );
+
+  std::vector<std::pair<float, float>> angle_ranges;
+
+  XmlRpc::XmlRpcValue angle_filter_params;
+
+  if (priv_nh.getParam("angle_filter_ranges", angle_filter_params))
+  {
+      if (angle_filter_params.getType() == XmlRpc::XmlRpcValue::TypeArray)
+      {
+          for (int i = 0; i < angle_filter_params.size(); i++)
+          {
+              if (angle_filter_params[i].getType() == XmlRpc::XmlRpcValue::TypeArray &&
+                  angle_filter_params[i].size() == 2)
+              {
+                  double start = static_cast<double>(angle_filter_params[i][0]);
+                  double end = static_cast<double>(angle_filter_params[i][1]);
+
+                  angle_ranges.push_back(
+                      std::make_pair((float)start, (float)end)
+                  );
+              }
+          }
+      }
+  }
 
   boost::asio::io_service io;
   signal(SIGINT, signalHandler);
   try {
     xv_11_laser_driver::XV11Laser laser(port, baud_rate, firmware_number, io);
+    laser.setAngleFilter(angle_filter_enable, angle_ranges);
     g_laser = &laser;
     ros::Publisher laser_pub = n.advertise<sensor_msgs::LaserScan>("scan", 1000);
     ros::Publisher motor_pub = n.advertise<std_msgs::UInt16>("rpms",1000);

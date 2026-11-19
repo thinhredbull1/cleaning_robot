@@ -110,15 +110,15 @@ const int pwm[] = {
 };
 const int dir[] = {
     21,    // M1 -> IN_M2
-    22,    // M2 -> IN_M4
+    22,    // M2 -> IN_M4dir_M_L_UP
     18,    // M3 -> IN_M5
     16      // M4 -> IN_M8
 };
-const int dir_M_L_UP=-1;
-const int dir_M_L_DOWN=-1;
-const int dir_M_R_UP=1;
-const int dir_M_R_DOWN=-1;
-int dir_encod[]={-1,-1,-1,-1};
+const int dir_M_L_UP=1;
+const int dir_M_L_DOWN=1;
+const int dir_M_R_UP=-1;
+const int dir_M_R_DOWN=1;
+int dir_encod[]={1,1,1,1};
 float p_gain_default=32.05;
 float i_gain_default=1.45;
 float d_gain_default=0.5;

@@ -36,7 +36,8 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <string>
-
+#include <vector>
+#include <utility>
 namespace xv_11_laser_driver {
     class XV11Laser {
         public:
@@ -65,12 +66,21 @@ namespace xv_11_laser_driver {
               */
             void close() { shutting_down_ = true; };
             void end();
+            void setAngleFilter(
+              bool enable,
+              const std::vector<std::pair<float, float>>& ranges
+          );
+
 
         private:
             std::string port_; ///< @brief The serial port the driver is attached to
             uint32_t baud_rate_; ///< @brief The baud rate for the serial connection
             uint32_t firmware_; ///< @brief The firmware version to check.  Currently supports two different versions: 1 and 2.
+            bool angle_filter_enable_ = false;
 
+            std::vector<std::pair<float, float>> angle_filter_ranges_;
+
+            bool isAngleFiltered(float angle);
             bool shutting_down_; ///< @brief Flag for whether the driver is supposed to be shutting down or not
             boost::asio::serial_port serial_; ///< @brief Actual serial port object for reading/writing to the XV11 Laser Scanner
 	    uint16_t motor_speed_; ///< @brief current motor speed as reported by the XV11.

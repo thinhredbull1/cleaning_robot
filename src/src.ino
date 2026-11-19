@@ -19,7 +19,7 @@ int encod_state[NMOTORS];
 robot_pos robotGlobalPos;
 void control_motor(int motor, int speed)
 {
-if(motor==M_L_DOWN || motor==M_R_DOWN)speed=-speed;
+if(motor==M_L_UP || motor==M_R_UP)speed=-speed;
   bool direct = speed > 0 ? 1 : 0;
   speed = constrain(speed, -255, 255);
 
